@@ -1,5 +1,4 @@
-// Vercel serverless function — proxies to Anthropic so the API key never leaves the server.
-// Deployed automatically when this folder exists at the project root.
+// Vercel serverless function — proxies to Groq so the API key never leaves the server.
 
 interface Body {
   smsText?: string;
@@ -26,9 +25,9 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: 'Method not allowed' }, 405);
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return json({ error: 'Server missing ANTHROPIC_API_KEY' }, 500);
+    return json({ error: 'Server missing GROQ_API_KEY' }, 500);
   }
 
   let body: Body;
@@ -43,18 +42,20 @@ export default async function handler(req: Request): Promise<Response> {
   if (smsText.length > 2000) return json({ error: 'smsText too long' }, 413);
 
   try {
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+    const upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'authorization': `Bearer ${apiKey}`,
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'llama-3.1-8b-instant',
         max_tokens: 300,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: `SMS:\n${smsText}` }],
+        temperature: 0,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: `SMS:\n${smsText}` },
+        ],
       }),
     });
 
@@ -64,9 +65,9 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     const data = (await upstream.json()) as {
-      content?: Array<{ type: string; text?: string }>;
+      choices?: Array<{ message?: { content?: string } }>;
     };
-    const raw = data.content?.find((c) => c.type === 'text')?.text ?? '';
+    const raw = data.choices?.[0]?.message?.content ?? '';
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return json({ error: 'Model returned no JSON', raw }, 502);
 
