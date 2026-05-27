@@ -11,10 +11,8 @@ const items = [
 
 export default function BottomNav() {
   return (
-    <nav
-      className="fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur border-t border-border"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-    >
+    <nav className="fixed bottom-0 inset-x-0 z-40">
+      <div className="bg-surface/95 backdrop-blur border-t border-border">
       <ul className="flex justify-around items-center h-16 max-w-md mx-auto">
         {items.map(({ to, label, icon: Icon, primary }) => (
           <li key={to} className="flex-1">
@@ -41,6 +39,8 @@ export default function BottomNav() {
           </li>
         ))}
       </ul>
+      </div>
+      <div className="bg-surface" style={{ height: 'env(safe-area-inset-bottom)' }} />
     </nav>
   );
 }
