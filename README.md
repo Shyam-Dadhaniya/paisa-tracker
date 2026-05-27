@@ -16,13 +16,15 @@ Supabase cloud sync is the next phase.
 - Offline-first via IndexedDB (Dexie)
 
 ## Environment variables
-Copy `.env.local.example` to `.env.local` and paste your Anthropic key:
+Copy `.env.local.example` to `.env.local`:
 ```
+VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_...
 ANTHROPIC_API_KEY=sk-ant-...
 ```
-This key is only used by the serverless function `/api/parse-sms.ts` — never bundled into the client.
-To test the SMS parser locally you need `vercel dev` (regular `npm run dev` won't serve `/api/*`).
-The regex fallback works without the key.
+- `VITE_*` vars are shipped to the client (safe — Supabase publishable key is public, protected by Row Level Security).
+- `ANTHROPIC_API_KEY` is server-only, used by `/api/parse-sms.ts`. Never bundled into the client.
+- To test SMS parser locally use `vercel dev` (plain `npm run dev` doesn't serve `/api/*`). Regex fallback works without it.
 
 ## Running locally
 ```bash
@@ -39,7 +41,9 @@ npm run preview      # serve the production build
 npm i -g vercel
 cd /Users/shyamdadhaniya/Projects/paisatrack
 vercel              # follow prompts, accept defaults
-vercel env add ANTHROPIC_API_KEY production   # paste your key when asked
+vercel env add ANTHROPIC_API_KEY production       # paste your Anthropic key
+vercel env add VITE_SUPABASE_URL production       # paste Supabase URL
+vercel env add VITE_SUPABASE_ANON_KEY production  # paste publishable key
 vercel --prod       # deploy to production
 ```
 You'll get an `https://paisatrack-xxx.vercel.app` URL.
@@ -49,7 +53,10 @@ You'll get an `https://paisatrack-xxx.vercel.app` URL.
 2. Create a new repo on github.com, push to it.
 3. Go to vercel.com → Add New Project → Import the repo.
 4. Framework: Vite (auto-detected).
-5. Under **Environment Variables**, add `ANTHROPIC_API_KEY` = your key.
+5. Under **Environment Variables**, add:
+   - `ANTHROPIC_API_KEY` = your Anthropic key
+   - `VITE_SUPABASE_URL` = your Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY` = your Supabase publishable key
 6. Click Deploy.
 
 ## Install on iPhone
@@ -72,10 +79,16 @@ You'll get an `https://paisatrack-xxx.vercel.app` URL.
 
 Now whenever a bank SMS arrives, the Shortcut copies it to clipboard, opens PaisaTrack on the Scan tab, which auto-reads the clipboard and parses with Claude. Tap **Save expense** and done.
 
+## Cloud sync (Supabase)
+- Sign in from **Settings → Enable cloud sync** (or /login). Email + password.
+- Auto-syncs: on sign-in, every 5 min, when network returns, when tab becomes visible.
+- Conflict resolution: last-write-wins on `updatedAt`.
+- Soft delete: deleting an expense marks `deleted=true` so the deletion propagates; sync engine clears it locally after the next pull.
+- Sync status chip on Dashboard (top right) and in Settings.
+
 ## Next phases
-- **Phase 1.5** — Claude SMS paste parser (needs Anthropic API key + serverless function on Vercel).
-- **Phase 2** — Supabase auth + cloud sync (eliminates the 7-day data loss risk).
-- **Phase 3** — Charts (Recharts is already installed), recurring expenses, budgets.
+- **Phase 2** — Charts (Recharts is already installed), recurring expenses, budgets, search, edit expense.
+- **Phase 3** — Multi-currency, receipt photo upload, AI weekly summary.
 
 ## Stack
 React 18 · TypeScript · Vite · Tailwind · React Router · Zustand · Dexie · React Hook Form · vite-plugin-pwa · Lucide · date-fns

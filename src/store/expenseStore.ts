@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { db } from '@/services/db';
+import { syncNow } from '@/services/syncEngine';
+import { useAuthStore } from './authStore';
 import type { Expense } from '@/types';
+
+function triggerSync() {
+  const user = useAuthStore.getState().user;
+  if (!user || !navigator.onLine) return;
+  // fire-and-forget; sync engine handles errors
+  void syncNow(user.id);
+}
 
 function uuid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -35,13 +44,22 @@ export const useExpenseStore = create<ExpenseStore>(() => ({
       ...input,
     };
     await db.expenses.add(expense);
+    triggerSync();
     return expense;
   },
   deleteExpense: async (id) => {
-    await db.expenses.delete(id);
+    // Soft-delete so it syncs to cloud; sync engine removes locally after pull confirms it.
+    const user = useAuthStore.getState().user;
+    if (user) {
+      await db.expenses.update(id, { deleted: true, updatedAt: Date.now() });
+      triggerSync();
+    } else {
+      await db.expenses.delete(id);
+    }
   },
   updateExpense: async (id, patch) => {
     await db.expenses.update(id, { ...patch, updatedAt: Date.now() });
+    triggerSync();
   },
   clearAll: async () => {
     await db.expenses.clear();

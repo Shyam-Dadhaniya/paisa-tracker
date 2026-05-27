@@ -4,7 +4,7 @@ import type { Expense } from '@/types';
 
 export function useAllExpenses(): Expense[] {
   const data = useLiveQuery(
-    () => db.expenses.orderBy('date').reverse().toArray(),
+    () => db.expenses.orderBy('date').reverse().filter((e) => !e.deleted).toArray(),
     [],
   );
   return data ?? [];

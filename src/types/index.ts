@@ -18,6 +18,7 @@ export interface Expense {
   smsRaw?: string;
   createdAt: number;
   updatedAt: number;
+  syncedAt?: number;
   deleted?: boolean;
 }
 

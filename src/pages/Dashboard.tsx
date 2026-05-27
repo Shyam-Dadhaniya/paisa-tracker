@@ -4,6 +4,7 @@ import { useAllExpenses } from '@/hooks/useExpenses';
 import { formatINR, todayISO, monthKey } from '@/utils/format';
 import { CATEGORIES, getCategory } from '@/utils/categories';
 import ExpenseCard from '@/components/ExpenseCard';
+import SyncIndicator from '@/components/SyncIndicator';
 import type { CategoryId } from '@/types';
 
 export default function Dashboard() {
@@ -32,9 +33,12 @@ export default function Dashboard() {
 
   return (
     <main className="safe-top safe-bottom max-w-md mx-auto px-4">
-      <header className="mb-6">
-        <p className="text-muted text-sm">Hey there 👋</p>
-        <h1 className="text-2xl font-bold">PaisaTrack</h1>
+      <header className="mb-6 flex items-start justify-between">
+        <div>
+          <p className="text-muted text-sm">Hey there 👋</p>
+          <h1 className="text-2xl font-bold">PaisaTrack</h1>
+        </div>
+        <SyncIndicator />
       </header>
 
       <section className="grid grid-cols-2 gap-3 mb-6">
