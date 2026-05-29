@@ -1,11 +1,4 @@
-export type CategoryId =
-  | 'food'
-  | 'transport'
-  | 'shopping'
-  | 'bills'
-  | 'entertainment'
-  | 'health'
-  | 'other';
+export type CategoryId = string;
 
 export interface Expense {
   id: string;
@@ -23,8 +16,16 @@ export interface Expense {
 }
 
 export interface Category {
-  id: CategoryId;
+  id: string;
   label: string;
   icon: string;
   color: string;
+}
+
+export interface CustomCategory {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  createdAt: number;
 }

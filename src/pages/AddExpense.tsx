@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ChevronLeft } from 'lucide-react';
-import { CATEGORIES } from '@/utils/categories';
+import { useCategoryStore } from '@/store/categoryStore';
 import { useExpenseStore } from '@/store/expenseStore';
-import { todayISO } from '@/utils/format';
+import { todayISO, formatDate } from '@/utils/format';
 import type { CategoryId } from '@/types';
 
 interface FormValues {
@@ -20,6 +20,7 @@ export default function AddExpense() {
   const addExpense = useExpenseStore((s) => s.addExpense);
   const [submitting, setSubmitting] = useState(false);
 
+  const categories = useCategoryStore((s) => s.categories);
   const { register, handleSubmit, watch, setValue, formState } = useForm<FormValues>({
     defaultValues: { date: todayISO(), category: 'food' },
   });
@@ -82,7 +83,7 @@ export default function AddExpense() {
             Category
           </label>
           <div className="grid grid-cols-4 gap-2">
-            {CATEGORIES.map((c) => {
+            {categories.map((c) => {
               const active = selectedCat === c.id;
               return (
                 <button
@@ -108,11 +109,16 @@ export default function AddExpense() {
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
               Date
             </label>
-            <input
-              {...register('date', { required: true })}
-              type="date"
-              className="w-full bg-surface border border-border rounded-xl px-3 py-3 focus:outline-none focus:border-primary"
-            />
+            <div className="relative w-full">
+              <div className="w-full bg-surface border border-border rounded-xl px-3 py-3 pointer-events-none select-none">
+                {watch('date') ? formatDate(watch('date'), 'd MMM yyyy') : 'Select date'}
+              </div>
+              <input
+                {...register('date', { required: true })}
+                type="date"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
           </div>
           <div>
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">

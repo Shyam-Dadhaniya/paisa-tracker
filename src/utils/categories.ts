@@ -1,4 +1,4 @@
-import type { Category, CategoryId } from '@/types';
+import type { Category } from '@/types';
 
 export const CATEGORIES: Category[] = [
   { id: 'food', label: 'Food', icon: '🍔', color: '#F59E0B' },
@@ -10,11 +10,11 @@ export const CATEGORIES: Category[] = [
   { id: 'other', label: 'Other', icon: '📦', color: '#6B7280' },
 ];
 
-export const categoryMap: Record<CategoryId, Category> = CATEGORIES.reduce(
+const categoryMap: Record<string, Category> = CATEGORIES.reduce(
   (acc, c) => ({ ...acc, [c.id]: c }),
-  {} as Record<CategoryId, Category>,
+  {} as Record<string, Category>,
 );
 
-export function getCategory(id: CategoryId): Category {
-  return categoryMap[id] ?? categoryMap.other;
+export function getCategory(id: string): Category {
+  return categoryMap[id] ?? categoryMap['other'];
 }

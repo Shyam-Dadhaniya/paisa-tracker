@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ChevronLeft } from 'lucide-react';
-import { CATEGORIES } from '@/utils/categories';
+import { useCategoryStore } from '@/store/categoryStore';
 import { useExpenseStore } from '@/store/expenseStore';
 import { useExpenseById } from '@/hooks/useExpenses';
+import { formatDate } from '@/utils/format';
 import type { CategoryId } from '@/types';
 
 interface FormValues {
@@ -18,7 +19,9 @@ interface FormValues {
 export default function EditExpense() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const categories = useCategoryStore((s) => s.categories);
   const updateExpense = useExpenseStore((s) => s.updateExpense);
+  const deleteExpense = useExpenseStore((s) => s.deleteExpense);
   const expense = useExpenseById(id!);
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,6 +39,13 @@ export default function EditExpense() {
       });
     }
   }, [expense, reset]);
+
+  const handleDelete = async () => {
+    if (confirm('Delete this expense?')) {
+      await deleteExpense(id!);
+      navigate('/history');
+    }
+  };
 
   const onSubmit = async (data: FormValues) => {
     setSubmitting(true);
@@ -106,7 +116,7 @@ export default function EditExpense() {
             Category
           </label>
           <div className="grid grid-cols-4 gap-2">
-            {CATEGORIES.map((c) => {
+            {categories.map((c) => {
               const active = selectedCat === c.id;
               return (
                 <button
@@ -132,11 +142,16 @@ export default function EditExpense() {
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
               Date
             </label>
-            <input
-              {...register('date', { required: true })}
-              type="date"
-              className="w-full bg-surface border border-border rounded-xl px-3 py-3 focus:outline-none focus:border-primary"
-            />
+            <div className="relative w-full">
+              <div className="w-full bg-surface border border-border rounded-xl px-3 py-3 pointer-events-none select-none">
+                {watch('date') ? formatDate(watch('date'), 'd MMM yyyy') : 'Select date'}
+              </div>
+              <input
+                {...register('date', { required: true })}
+                type="date"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
           </div>
           <div>
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
@@ -156,6 +171,14 @@ export default function EditExpense() {
           className="w-full bg-primary text-white font-semibold py-4 rounded-2xl shadow-lg shadow-primary/30 active:scale-[0.98] transition disabled:opacity-50"
         >
           {submitting ? 'Saving…' : 'Save changes'}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleDelete}
+          className="w-full text-danger text-sm font-medium py-3 active:scale-[0.98] transition"
+        >
+          Delete entry
         </button>
       </form>
     </main>

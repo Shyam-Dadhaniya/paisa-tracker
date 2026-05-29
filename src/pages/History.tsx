@@ -1,16 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAllExpenses } from '@/hooks/useExpenses';
-import { useExpenseStore } from '@/store/expenseStore';
-import { CATEGORIES } from '@/utils/categories';
+import { useCategoryStore } from '@/store/categoryStore';
 import { formatDate, formatINR } from '@/utils/format';
 import ExpenseCard from '@/components/ExpenseCard';
 import type { CategoryId, Expense } from '@/types';
 
 export default function History() {
   const navigate = useNavigate();
+  const categories = useCategoryStore((s) => s.categories);
   const expenses = useAllExpenses();
-  const deleteExpense = useExpenseStore((s) => s.deleteExpense);
   const [filter, setFilter] = useState<CategoryId | 'all'>('all');
 
   const filtered = useMemo(
@@ -28,12 +27,6 @@ export default function History() {
     return Array.from(map.entries());
   }, [filtered]);
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Delete this expense?')) await deleteExpense(id);
-  };
-
-  const handleEdit = (id: string) => navigate(`/edit/${id}`);
-
   return (
     <main className="safe-top safe-bottom max-w-md mx-auto px-4">
       <header className="mb-4">
@@ -45,7 +38,7 @@ export default function History() {
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
           All
         </Chip>
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <Chip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
             {c.icon} {c.label}
           </Chip>
@@ -71,8 +64,7 @@ export default function History() {
                     <ExpenseCard
                       key={e.id}
                       expense={e}
-                      onDelete={handleDelete}
-                      onEdit={handleEdit}
+                      onClick={() => navigate(`/edit/${e.id}`)}
                       showDate={false}
                     />
                   ))}

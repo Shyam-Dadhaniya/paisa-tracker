@@ -5,14 +5,14 @@ import { parseSms } from '@/services/aiParser';
 import type { ParsedSms } from '@/services/smsRegex';
 import { useReadClipboard, looksLikeSms } from '@/hooks/useClipboard';
 import { useExpenseStore } from '@/store/expenseStore';
-import { CATEGORIES } from '@/utils/categories';
+import { useCategoryStore } from '@/store/categoryStore';
 import { formatINR, todayISO } from '@/utils/format';
-import type { CategoryId } from '@/types';
 
 export default function SmsParser() {
   const navigate = useNavigate();
   const readClipboard = useReadClipboard();
   const addExpense = useExpenseStore((s) => s.addExpense);
+  const categories = useCategoryStore((s) => s.categories);
 
   const [sms, setSms] = useState('');
   const [loading, setLoading] = useState(false);
@@ -149,12 +149,12 @@ export default function SmsParser() {
           <div>
             <p className="text-xs text-muted uppercase tracking-wider mb-2">Category</p>
             <div className="grid grid-cols-4 gap-2">
-              {CATEGORIES.map((c) => {
+              {categories.map((c) => {
                 const active = parsed.category === c.id;
                 return (
                   <button
                     key={c.id}
-                    onClick={() => setParsed({ ...parsed, category: c.id as CategoryId })}
+                    onClick={() => setParsed({ ...parsed, category: c.id })}
                     className={`flex flex-col items-center gap-1 py-2 rounded-lg border text-[10px] transition ${
                       active
                         ? 'border-primary bg-primary/10'

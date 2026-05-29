@@ -1,18 +1,22 @@
-import { Download, Trash2, Info, LogIn, LogOut, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Download, Trash2, Info, LogIn, LogOut, RefreshCw, Tag, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { useExpenseStore } from '@/store/expenseStore';
 import { useAuthStore } from '@/store/authStore';
+import { useCategoryStore } from '@/store/categoryStore';
 import { useSync } from '@/hooks/useSync';
 import { downloadCSV, expensesToCSV } from '@/utils/csv';
 import { todayISO } from '@/utils/format';
 
 export default function Settings() {
+  const navigate = useNavigate();
   const expenses = useAllExpenses();
   const clearAll = useExpenseStore((s) => s.clearAll);
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
   const { status, syncNow } = useSync();
+  const categories = useCategoryStore((s) => s.categories);
+  const customCount = categories.filter((c) => c.id.startsWith('custom_')).length;
 
   const handleExport = () => {
     if (expenses.length === 0) {
@@ -73,6 +77,21 @@ export default function Settings() {
             </div>
           </Link>
         )}
+      </section>
+
+      <section className="mb-5">
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-1">Categories</h2>
+        <button
+          onClick={() => navigate('/categories')}
+          className="w-full flex items-center gap-3 bg-surface rounded-2xl px-4 py-3.5 border border-border/60 active:scale-[0.99] transition"
+        >
+          <Tag size={20} className="text-primary" />
+          <span className="flex-1 text-left font-medium">Custom Categories</span>
+          {customCount > 0 && (
+            <span className="text-xs text-muted">{customCount} custom</span>
+          )}
+          <ChevronRight size={16} className="text-muted" />
+        </button>
       </section>
 
       <section className="mb-5">
