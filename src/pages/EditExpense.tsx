@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ChevronLeft } from 'lucide-react';
 import { CATEGORIES } from '@/utils/categories';
 import { useExpenseStore } from '@/store/expenseStore';
-import { todayISO } from '@/utils/format';
+import { useExpenseById } from '@/hooks/useExpenses';
 import type { CategoryId } from '@/types';
 
 interface FormValues {
@@ -15,27 +15,51 @@ interface FormValues {
   note?: string;
 }
 
-export default function AddExpense() {
+export default function EditExpense() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const addExpense = useExpenseStore((s) => s.addExpense);
+  const updateExpense = useExpenseStore((s) => s.updateExpense);
+  const expense = useExpenseById(id!);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, watch, setValue, formState } = useForm<FormValues>({
-    defaultValues: { date: todayISO(), category: 'food' },
-  });
+  const { register, handleSubmit, watch, setValue, reset, formState } = useForm<FormValues>();
   const selectedCat = watch('category');
+
+  useEffect(() => {
+    if (expense) {
+      reset({
+        amount: expense.amount,
+        merchant: expense.merchant,
+        category: expense.category,
+        date: expense.date,
+        note: expense.note ?? '',
+      });
+    }
+  }, [expense, reset]);
 
   const onSubmit = async (data: FormValues) => {
     setSubmitting(true);
-    await addExpense({
+    await updateExpense(id!, {
       amount: Number(data.amount),
       merchant: data.merchant.trim(),
       category: data.category,
       date: data.date,
       note: data.note?.trim() || undefined,
     });
-    navigate('/');
+    navigate('/history');
   };
+
+  if (expense === null) {
+    return (
+      <main className="safe-top safe-bottom max-w-md mx-auto px-4">
+        <p className="text-center text-muted mt-12">Expense not found.</p>
+      </main>
+    );
+  }
+
+  if (expense === undefined) {
+    return null;
+  }
 
   return (
     <main className="safe-top safe-bottom max-w-md mx-auto px-4">
@@ -47,7 +71,7 @@ export default function AddExpense() {
         >
           <ChevronLeft size={24} />
         </button>
-        <h1 className="text-xl font-bold">Add expense</h1>
+        <h1 className="text-xl font-bold">Edit expense</h1>
       </header>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -131,7 +155,7 @@ export default function AddExpense() {
           disabled={submitting || !formState.isValid}
           className="w-full bg-primary text-white font-semibold py-4 rounded-2xl shadow-lg shadow-primary/30 active:scale-[0.98] transition disabled:opacity-50"
         >
-          {submitting ? 'Saving…' : 'Save expense'}
+          {submitting ? 'Saving…' : 'Save changes'}
         </button>
       </form>
     </main>

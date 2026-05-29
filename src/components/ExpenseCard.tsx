@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import type { Expense } from '@/types';
 import { formatINR, formatDate } from '@/utils/format';
 import { getCategory } from '@/utils/categories';
@@ -6,10 +6,11 @@ import { getCategory } from '@/utils/categories';
 interface Props {
   expense: Expense;
   onDelete?: (id: string) => void;
+  onEdit?: (id: string) => void;
   showDate?: boolean;
 }
 
-export default function ExpenseCard({ expense, onDelete, showDate = true }: Props) {
+export default function ExpenseCard({ expense, onDelete, onEdit, showDate = true }: Props) {
   const cat = getCategory(expense.category);
   return (
     <div className="flex items-center gap-3 bg-surface rounded-2xl p-3 border border-border/60">
@@ -32,6 +33,15 @@ export default function ExpenseCard({ expense, onDelete, showDate = true }: Prop
           {showDate && <p className="shrink-0">{formatDate(expense.date, 'd MMM')}</p>}
         </div>
       </div>
+      {onEdit && (
+        <button
+          onClick={() => onEdit(expense.id)}
+          className="p-2 text-muted hover:text-primary hover:bg-primary/10 rounded-xl active:scale-95 transition"
+          aria-label="Edit"
+        >
+          <Pencil size={16} />
+        </button>
+      )}
       {onDelete && (
         <button
           onClick={() => onDelete(expense.id)}

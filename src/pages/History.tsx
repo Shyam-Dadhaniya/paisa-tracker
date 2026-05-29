@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { useExpenseStore } from '@/store/expenseStore';
 import { CATEGORIES } from '@/utils/categories';
@@ -7,6 +8,7 @@ import ExpenseCard from '@/components/ExpenseCard';
 import type { CategoryId, Expense } from '@/types';
 
 export default function History() {
+  const navigate = useNavigate();
   const expenses = useAllExpenses();
   const deleteExpense = useExpenseStore((s) => s.deleteExpense);
   const [filter, setFilter] = useState<CategoryId | 'all'>('all');
@@ -29,6 +31,8 @@ export default function History() {
   const handleDelete = async (id: string) => {
     if (confirm('Delete this expense?')) await deleteExpense(id);
   };
+
+  const handleEdit = (id: string) => navigate(`/edit/${id}`);
 
   return (
     <main className="safe-top safe-bottom max-w-md mx-auto px-4">
@@ -68,6 +72,7 @@ export default function History() {
                       key={e.id}
                       expense={e}
                       onDelete={handleDelete}
+                      onEdit={handleEdit}
                       showDate={false}
                     />
                   ))}

@@ -9,3 +9,7 @@ export function useAllExpenses(): Expense[] {
   );
   return data ?? [];
 }
+
+export function useExpenseById(id: string): Expense | undefined | null {
+  return useLiveQuery(() => db.expenses.get(id), [id]);
+}
