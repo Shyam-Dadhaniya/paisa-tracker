@@ -99,8 +99,8 @@ export default function CategorySheet({ open, onClose, selected, onSelect }: Pro
                     </button>
                   </div>
 
-                  {/* Grid */}
-                  <div className="overflow-y-auto flex-1">
+                  {/* Grid — capped to 3 rows, scrolls beyond */}
+                  <div className="overflow-y-auto max-h-60">
                     <div className="grid grid-cols-3 gap-px bg-border border-t border-border">
                       {categories.map((c) => {
                         const active = selected === c.id;
@@ -127,18 +127,18 @@ export default function CategorySheet({ open, onClose, selected, onSelect }: Pro
                         );
                       })}
                     </div>
-
-                    {/* Create button */}
-                    <button
-                      type="button"
-                      onClick={() => setView('create')}
-                      className="w-full flex items-center justify-center gap-2 py-4 text-sm text-primary font-medium border-t border-border active:opacity-70 transition"
-                    >
-                      <Plus size={15} />
-                      New category
-                    </button>
-                    <div className="h-6" />
                   </div>
+
+                  {/* Create button — always visible, never scrolls away */}
+                  <button
+                    type="button"
+                    onClick={() => setView('create')}
+                    className="w-full flex items-center justify-center gap-2 py-4 text-sm text-primary font-medium border-t border-border active:opacity-70 transition shrink-0"
+                  >
+                    <Plus size={15} />
+                    New category
+                  </button>
+                  <div className="h-6 shrink-0" />
                 </motion.div>
               ) : (
                 <motion.div
