@@ -30,6 +30,7 @@ export default function ItemsTable({ items, onChange }: Props) {
     setQtyInputs((prev) => { const n = { ...prev }; delete n[id]; return n; });
 
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const totalQty = items.reduce((s, i) => s + i.qty, 0);
 
   return (
     <div>
@@ -149,11 +150,16 @@ export default function ItemsTable({ items, onChange }: Props) {
           ))}
 
           {/* Total row */}
-          <div className="flex justify-between items-center px-3 py-2.5 bg-surface2">
-            <span className="text-[10px] text-muted uppercase tracking-wider">Items total</span>
-            <span className="text-sm font-semibold tabular-nums text-primary">
-              {formatINR(total)}
+          <div className="flex items-center justify-between px-3 py-2.5 bg-surface2">
+            <span className="text-[10px] text-muted uppercase tracking-wider">
+              {items.length} item{items.length !== 1 ? 's' : ''} · {totalQty} qty
             </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted uppercase tracking-wider">Total</span>
+              <span className="text-sm font-semibold tabular-nums text-primary">
+                {formatINR(total)}
+              </span>
+            </div>
           </div>
         </div>
       )}
