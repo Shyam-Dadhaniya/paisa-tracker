@@ -91,8 +91,8 @@ export default function EditExpense() {
   }
 
   return (
-    <main className="safe-top safe-bottom max-w-md mx-auto px-4">
-      <header className="flex items-center gap-2 mb-6">
+    <main className="safe-top flex flex-col h-[100dvh] max-w-md mx-auto">
+      <header className="flex items-center gap-2 px-4 py-4 shrink-0">
         <button
           onClick={() => navigate(-1)}
           className="p-2 -ml-2 text-muted active:scale-95"
@@ -103,101 +103,106 @@ export default function EditExpense() {
         <h1 className="text-xl font-bold">Edit expense</h1>
       </header>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        <div>
-          <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-            Amount (₹)
-            {hasItems && (
-              <span className="ml-2 text-[10px] text-primary normal-case tracking-normal font-normal">
-                auto from items
-              </span>
-            )}
-          </label>
-          <input
-            {...register('amount', { required: true, min: 0.01 })}
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            autoFocus={!hasItems}
-            placeholder="0"
-            readOnly={hasItems}
-            className={`w-full bg-surface border border-border rounded-2xl px-4 py-4 text-3xl font-bold tabular-nums focus:outline-none focus:border-primary transition ${
-              hasItems ? 'opacity-60 cursor-default' : ''
-            }`}
-          />
-        </div>
-
-        <div>
-          <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-            Merchant
-          </label>
-          <input
-            {...register('merchant', { required: true })}
-            placeholder="e.g. Zomato"
-            className="w-full bg-surface border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-primary"
-          />
-        </div>
-
-        <div>
-          <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-            Category
-          </label>
-          <button
-            type="button"
-            onClick={() => setCatOpen(true)}
-            className="w-full flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3 text-left active:scale-[0.98] transition"
-          >
-            <span className="text-2xl">{selectedCategory.icon}</span>
-            <span className="font-medium flex-1">{selectedCategory.label}</span>
-            <ChevronDown size={18} className="text-muted" />
-          </button>
-        </div>
-
-        <ItemsTable items={items} onChange={setItems} />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+        {/* Scrollable fields */}
+        <div className="flex-1 overflow-y-auto px-4 space-y-5 pb-4">
           <div>
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-              Date
+              Amount (₹)
+              {hasItems && (
+                <span className="ml-2 text-[10px] text-primary normal-case tracking-normal font-normal">
+                  auto from items
+                </span>
+              )}
             </label>
-            <div className="relative w-full">
-              <div className="w-full bg-surface border border-border rounded-xl px-3 py-3 pointer-events-none select-none">
-                {watch('date') ? formatDate(watch('date'), 'd MMM yyyy') : 'Select date'}
+            <input
+              {...register('amount', { required: true, min: 0.01 })}
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              autoFocus={!hasItems}
+              placeholder="0"
+              readOnly={hasItems}
+              className={`w-full bg-surface border border-border rounded-2xl px-4 py-4 text-3xl font-bold tabular-nums focus:outline-none focus:border-primary transition ${
+                hasItems ? 'opacity-60 cursor-default' : ''
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
+              Merchant
+            </label>
+            <input
+              {...register('merchant', { required: true })}
+              placeholder="e.g. Zomato"
+              className="w-full bg-surface border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
+              Category
+            </label>
+            <button
+              type="button"
+              onClick={() => setCatOpen(true)}
+              className="w-full flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3 text-left active:scale-[0.98] transition"
+            >
+              <span className="text-2xl">{selectedCategory.icon}</span>
+              <span className="font-medium flex-1">{selectedCategory.label}</span>
+              <ChevronDown size={18} className="text-muted" />
+            </button>
+          </div>
+
+          <ItemsTable items={items} onChange={setItems} />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
+                Date
+              </label>
+              <div className="relative w-full">
+                <div className="w-full bg-surface border border-border rounded-xl px-3 py-3 pointer-events-none select-none">
+                  {watch('date') ? formatDate(watch('date'), 'd MMM yyyy') : 'Select date'}
+                </div>
+                <input
+                  {...register('date', { required: true })}
+                  type="date"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
               </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
+                Note
+              </label>
               <input
-                {...register('date', { required: true })}
-                type="date"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                {...register('note')}
+                placeholder="Optional"
+                className="w-full bg-surface border border-border rounded-xl px-3 py-3 focus:outline-none focus:border-primary"
               />
             </div>
           </div>
-          <div>
-            <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-              Note
-            </label>
-            <input
-              {...register('note')}
-              placeholder="Optional"
-              className="w-full bg-surface border border-border rounded-xl px-3 py-3 focus:outline-none focus:border-primary"
-            />
-          </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting || !formState.isValid}
-          className="w-full bg-primary text-white font-semibold py-4 rounded-2xl shadow-lg shadow-primary/30 active:scale-[0.98] transition disabled:opacity-50"
-        >
-          {submitting ? 'Saving…' : 'Save changes'}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleDelete}
-          className="w-full text-danger text-sm font-medium py-3 active:scale-[0.98] transition"
-        >
-          Delete entry
-        </button>
+        {/* Sticky footer — always visible */}
+        <div className="px-4 pt-3 pb-6 bg-bg border-t border-border/40 shrink-0 space-y-2">
+          <button
+            type="submit"
+            disabled={submitting || !formState.isValid}
+            className="w-full bg-primary text-white font-semibold py-4 rounded-2xl shadow-lg shadow-primary/30 active:scale-[0.98] transition disabled:opacity-50"
+          >
+            {submitting ? 'Saving…' : 'Save changes'}
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="w-full text-danger text-sm font-medium py-3 active:scale-[0.98] transition"
+          >
+            Delete entry
+          </button>
+        </div>
       </form>
 
       <CategorySheet

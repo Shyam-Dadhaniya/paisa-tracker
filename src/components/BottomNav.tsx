@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Plus, List, Settings as SettingsIcon, Sparkles } from 'lucide-react';
 
 const items = [
@@ -10,6 +10,10 @@ const items = [
 ];
 
 export default function BottomNav() {
+  const { pathname } = useLocation();
+
+  if (pathname === '/add' || pathname.startsWith('/edit/')) return null;
+
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40">
       <div className="bg-surface/95 backdrop-blur border-t border-border">
