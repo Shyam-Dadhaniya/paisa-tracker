@@ -1,10 +1,12 @@
-import { Download, Trash2, Info, LogIn, LogOut, RefreshCw, Tag, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Trash2, Info, LogIn, LogOut, RefreshCw, Tag, ChevronRight, DatabaseBackup } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { useExpenseStore } from '@/store/expenseStore';
 import { useAuthStore } from '@/store/authStore';
 import { useCategoryStore } from '@/store/categoryStore';
 import { useSync } from '@/hooks/useSync';
+import { resetSyncMeta } from '@/services/syncEngine';
 import { downloadCSV, expensesToCSV } from '@/utils/csv';
 import { todayISO } from '@/utils/format';
 
@@ -17,6 +19,7 @@ export default function Settings() {
   const { status, syncNow } = useSync();
   const categories = useCategoryStore((s) => s.categories);
   const customCount = categories.filter((c) => c.id.startsWith('custom_')).length;
+  const [resetting, setResetting] = useState(false);
 
   const handleExport = () => {
     if (expenses.length === 0) {
@@ -24,6 +27,15 @@ export default function Settings() {
       return;
     }
     downloadCSV(`paisatrack-${todayISO()}.csv`, expensesToCSV(expenses));
+  };
+
+  const handleResetSync = async () => {
+    if (!confirm('Clear all local data and re-fetch everything from cloud?')) return;
+    setResetting(true);
+    await clearAll();
+    resetSyncMeta();
+    await syncNow();
+    setResetting(false);
   };
 
   const handleClear = async () => {
@@ -56,6 +68,15 @@ export default function Settings() {
               <RefreshCw size={20} className="text-primary" />
               <span className="flex-1 text-left font-medium">Sync now</span>
               <span className="text-xs text-muted capitalize">{status}</span>
+            </button>
+            <button
+              onClick={handleResetSync}
+              disabled={resetting}
+              className="w-full flex items-center gap-3 px-4 py-3.5 active:scale-[0.99] transition disabled:opacity-50"
+            >
+              <DatabaseBackup size={20} className="text-primary" />
+              <span className="flex-1 text-left font-medium">Reset & re-sync from cloud</span>
+              {resetting && <span className="text-xs text-muted">Syncing…</span>}
             </button>
             <button
               onClick={signOut}
