@@ -16,8 +16,8 @@ export default function Dashboard() {
     let monthTotal = 0;
     const byCat: Record<string, number> = {};
     for (const e of expenses) {
-      if (e.date === today) todayTotal += e.amount;
-      if (monthKey(e.date) === thisMonth) {
+      if (e.date === today && (e.type ?? 'expense') === 'expense') todayTotal += e.amount;
+      if (monthKey(e.date) === thisMonth && (e.type ?? 'expense') === 'expense') {
         monthTotal += e.amount;
         byCat[e.category] = (byCat[e.category] ?? 0) + e.amount;
       }

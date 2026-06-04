@@ -13,6 +13,7 @@ export interface Expense {
   amount: number; // rupees (decimal)
   category: CategoryId;
   date: string; // ISO date YYYY-MM-DD
+  type?: 'income' | 'expense'; // undefined treated as 'expense' for backward compat
   note?: string;
   source: 'manual' | 'sms' | 'recurring';
   smsRaw?: string;

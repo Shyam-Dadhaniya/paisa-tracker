@@ -29,6 +29,7 @@ export default function EditExpense() {
   const [submitting, setSubmitting] = useState(false);
   const [items, setItems] = useState<ExpenseItem[]>([]);
   const [catOpen, setCatOpen] = useState(false);
+  const [entryType, setEntryType] = useState<'expense' | 'income'>('expense');
 
   const { register, handleSubmit, watch, setValue, reset, formState } = useForm<FormValues>();
   const selectedCat = watch('category');
@@ -44,6 +45,7 @@ export default function EditExpense() {
         note: expense.note ?? '',
       });
       setItems(expense.items ?? []);
+      setEntryType(expense.type ?? 'expense');
     }
   }, [expense, reset]);
 
@@ -59,7 +61,7 @@ export default function EditExpense() {
   }, [itemsTotal, hasItems, setValue, expense]);
 
   const handleDelete = async () => {
-    if (confirm('Delete this expense?')) {
+    if (confirm('Delete this entry?')) {
       await deleteExpense(id!);
       navigate('/history');
     }
@@ -68,12 +70,13 @@ export default function EditExpense() {
   const onSubmit = async (data: FormValues) => {
     setSubmitting(true);
     await updateExpense(id!, {
-      amount: hasItems ? itemsTotal : Number(data.amount),
+      amount: hasItems && entryType === 'expense' ? itemsTotal : Number(data.amount),
       merchant: data.merchant.trim(),
-      category: data.category,
+      category: entryType === 'income' ? '__income__' : data.category,
       date: data.date,
+      type: entryType,
       note: data.note?.trim() || undefined,
-      items: items.length > 0 ? items : undefined,
+      items: entryType === 'expense' && items.length > 0 ? items : undefined,
     });
     navigate('/history');
   };
@@ -81,7 +84,7 @@ export default function EditExpense() {
   if (expense === null) {
     return (
       <main className="safe-top safe-bottom max-w-md mx-auto px-4">
-        <p className="text-center text-muted mt-12">Expense not found.</p>
+        <p className="text-center text-muted mt-12">Entry not found.</p>
       </main>
     );
   }
@@ -89,6 +92,8 @@ export default function EditExpense() {
   if (expense === undefined) {
     return null;
   }
+
+  const isIncome = entryType === 'income';
 
   return (
     <main className="safe-top flex flex-col h-[100dvh] max-w-md mx-auto">
@@ -100,16 +105,38 @@ export default function EditExpense() {
         >
           <ChevronLeft size={24} />
         </button>
-        <h1 className="text-xl font-bold">Edit expense</h1>
+        <h1 className="text-xl font-bold">{isIncome ? 'Edit income' : 'Edit expense'}</h1>
       </header>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
         {/* Scrollable fields */}
         <div className="flex-1 overflow-y-auto px-4 space-y-5 pb-4">
+          {/* Expense / Income toggle */}
+          <div className="flex rounded-xl overflow-hidden border border-border">
+            <button
+              type="button"
+              onClick={() => setEntryType('income')}
+              className={`flex-1 py-2 text-sm font-medium transition ${
+                isIncome ? 'bg-green-500 text-white' : 'bg-surface text-muted'
+              }`}
+            >
+              Income
+            </button>
+            <button
+              type="button"
+              onClick={() => setEntryType('expense')}
+              className={`flex-1 py-2 text-sm font-medium transition ${
+                !isIncome ? 'bg-primary text-white' : 'bg-surface text-muted'
+              }`}
+            >
+              Expense
+            </button>
+          </div>
+
           <div>
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
               Amount (₹)
-              {hasItems && (
+              {hasItems && !isIncome && (
                 <span className="ml-2 text-[10px] text-primary normal-case tracking-normal font-normal">
                   auto from items
                 </span>
@@ -122,40 +149,42 @@ export default function EditExpense() {
               step="0.01"
               autoFocus={!hasItems}
               placeholder="0"
-              readOnly={hasItems}
+              readOnly={hasItems && !isIncome}
               className={`w-full bg-surface border border-border rounded-2xl px-4 py-4 text-3xl font-bold tabular-nums focus:outline-none focus:border-primary transition ${
-                hasItems ? 'opacity-60 cursor-default' : ''
+                hasItems && !isIncome ? 'opacity-60 cursor-default' : ''
               }`}
             />
           </div>
 
           <div>
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-              Merchant
+              {isIncome ? 'Source' : 'Merchant'}
             </label>
             <input
               {...register('merchant', { required: true })}
-              placeholder="e.g. Zomato"
+              placeholder={isIncome ? 'e.g. Salary' : 'e.g. Zomato'}
               className="w-full bg-surface border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-primary"
             />
           </div>
 
-          <div>
-            <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-              Category
-            </label>
-            <button
-              type="button"
-              onClick={() => setCatOpen(true)}
-              className="w-full flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3 text-left active:scale-[0.98] transition"
-            >
-              <span className="text-2xl">{selectedCategory.icon}</span>
-              <span className="font-medium flex-1">{selectedCategory.label}</span>
-              <ChevronDown size={18} className="text-muted" />
-            </button>
-          </div>
+          {!isIncome && (
+            <div>
+              <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
+                Category
+              </label>
+              <button
+                type="button"
+                onClick={() => setCatOpen(true)}
+                className="w-full flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3 text-left active:scale-[0.98] transition"
+              >
+                <span className="text-2xl">{selectedCategory.icon}</span>
+                <span className="font-medium flex-1">{selectedCategory.label}</span>
+                <ChevronDown size={18} className="text-muted" />
+              </button>
+            </div>
+          )}
 
-          <ItemsTable items={items} onChange={setItems} />
+          {!isIncome && <ItemsTable items={items} onChange={setItems} />}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -191,7 +220,11 @@ export default function EditExpense() {
           <button
             type="submit"
             disabled={submitting || !formState.isValid}
-            className="w-full bg-primary text-white font-semibold py-4 rounded-2xl shadow-lg shadow-primary/30 active:scale-[0.98] transition disabled:opacity-50"
+            className={`w-full text-white font-semibold py-4 rounded-2xl shadow-lg active:scale-[0.98] transition disabled:opacity-50 ${
+              isIncome
+                ? 'bg-green-500 shadow-green-500/30'
+                : 'bg-primary shadow-primary/30'
+            }`}
           >
             {submitting ? 'Saving…' : 'Save changes'}
           </button>
@@ -205,12 +238,14 @@ export default function EditExpense() {
         </div>
       </form>
 
-      <CategorySheet
-        open={catOpen}
-        onClose={() => setCatOpen(false)}
-        selected={selectedCat}
-        onSelect={(id) => setValue('category', id, { shouldValidate: true })}
-      />
+      {!isIncome && (
+        <CategorySheet
+          open={catOpen}
+          onClose={() => setCatOpen(false)}
+          selected={selectedCat}
+          onSelect={(id) => setValue('category', id, { shouldValidate: true })}
+        />
+      )}
     </main>
   );
 }

@@ -1,21 +1,55 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { format, subMonths, addMonths, parseISO } from 'date-fns';
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { useCategoryStore } from '@/store/categoryStore';
-import { formatDate, formatINR } from '@/utils/format';
+import { formatDate, formatINR, monthKey, todayISO } from '@/utils/format';
 import ExpenseCard from '@/components/ExpenseCard';
+import CategoryFilterSheet from '@/components/CategoryFilterSheet';
 import type { CategoryId, Expense } from '@/types';
 
 export default function History() {
   const navigate = useNavigate();
-  const categories = useCategoryStore((s) => s.categories);
+  useCategoryStore((s) => s.categories);
   const expenses = useAllExpenses();
-  const [filter, setFilter] = useState<CategoryId | 'all'>('all');
+  const [filters, setFilters] = useState<CategoryId[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(() => monthKey(todayISO()));
+
+  function prevMonth() {
+    setSelectedMonth((m) => monthKey(format(subMonths(parseISO(m + '-01'), 1), 'yyyy-MM-dd')));
+  }
+
+  function nextMonth() {
+    setSelectedMonth((m) => monthKey(format(addMonths(parseISO(m + '-01'), 1), 'yyyy-MM-dd')));
+  }
+
+  function toggleFilter(id: CategoryId) {
+    setFilters((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
+  }
+
+  function clearFilters() {
+    setFilters([]);
+  }
 
   const filtered = useMemo(
-    () => (filter === 'all' ? expenses : expenses.filter((e) => e.category === filter)),
-    [expenses, filter],
+    () =>
+      expenses
+        .filter((e) => monthKey(e.date) === selectedMonth)
+        .filter((e) => filters.length === 0 || filters.includes(e.category)),
+    [expenses, selectedMonth, filters],
   );
+
+  const summary = useMemo(() => {
+    const income = filtered
+      .filter((e) => e.type === 'income')
+      .reduce((s, e) => s + e.amount, 0);
+    const expense = filtered
+      .filter((e) => (e.type ?? 'expense') === 'expense')
+      .reduce((s, e) => s + e.amount, 0);
+    return { income, expense, total: income - expense };
+  }, [filtered]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Expense[]>();
@@ -30,20 +64,56 @@ export default function History() {
   return (
     <main className="safe-top safe-bottom max-w-md mx-auto px-4">
       <header className="mb-4">
-        <h1 className="text-2xl font-bold">History</h1>
-        <p className="text-sm text-muted">{filtered.length} entries</p>
-      </header>
+        {/* Month picker row with filter icon */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="w-8" />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={prevMonth}
+              className="p-1 rounded-full hover:bg-surface2 text-muted transition"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="bg-surface border border-border rounded-full px-4 py-1 text-sm font-semibold">
+              {format(parseISO(selectedMonth + '-01'), 'MMM yyyy')}
+            </span>
+            <button
+              onClick={nextMonth}
+              className="p-1 rounded-full hover:bg-surface2 text-muted transition"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+          <button
+            onClick={() => setFilterOpen(true)}
+            className="relative p-1 text-muted hover:text-primary transition"
+            aria-label="Filter by category"
+          >
+            <SlidersHorizontal size={18} />
+            {filters.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] flex items-center justify-center font-bold">
+                {filters.length}
+              </span>
+            )}
+          </button>
+        </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-4 px-4">
-        <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
-          All
-        </Chip>
-        {categories.map((c) => (
-          <Chip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
-            {c.icon} {c.label}
-          </Chip>
-        ))}
-      </div>
+        {/* Summary row */}
+        <div className="grid grid-cols-3 text-center bg-surface rounded-xl border border-border py-2">
+          <div>
+            <p className="text-xs text-muted">Income</p>
+            <p className="text-sm font-semibold text-green-400">{formatINR(summary.income)}</p>
+          </div>
+          <div className="border-x border-border">
+            <p className="text-xs text-muted">Exp.</p>
+            <p className="text-sm font-semibold text-red-400">{formatINR(summary.expense)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted">Total</p>
+            <p className="text-sm font-semibold">{formatINR(summary.total)}</p>
+          </div>
+        </div>
+      </header>
 
       {grouped.length === 0 ? (
         <p className="text-center text-muted mt-12">No expenses to show</p>
@@ -74,29 +144,14 @@ export default function History() {
           })}
         </div>
       )}
-    </main>
-  );
-}
 
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm border transition ${
-        active
-          ? 'bg-primary border-primary text-white'
-          : 'bg-surface border-border text-muted'
-      }`}
-    >
-      {children}
-    </button>
+      <CategoryFilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        selected={filters}
+        onToggle={toggleFilter}
+        onClear={clearFilters}
+      />
+    </main>
   );
 }

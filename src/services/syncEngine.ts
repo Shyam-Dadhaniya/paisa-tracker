@@ -9,6 +9,7 @@ interface RemoteRow {
   amount: number;
   category: string;
   date: string;
+  type: string; // 'expense' | 'income'
   note: string | null;
   source: string;
   sms_raw: string | null;
@@ -26,6 +27,7 @@ function toRow(e: Expense, userId: string): RemoteRow {
     amount: e.amount,
     category: e.category,
     date: e.date,
+    type: e.type ?? 'expense',
     note: e.note ?? null,
     source: e.source,
     sms_raw: e.smsRaw ?? null,
@@ -43,6 +45,7 @@ function fromRow(r: RemoteRow): Expense {
     amount: Number(r.amount),
     category: r.category as Expense['category'],
     date: r.date,
+    type: (r.type ?? 'expense') as Expense['type'],
     note: r.note ?? undefined,
     source: r.source as Expense['source'],
     smsRaw: r.sms_raw ?? undefined,
