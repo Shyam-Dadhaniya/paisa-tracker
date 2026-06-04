@@ -60,7 +60,7 @@ export default function SmsParser() {
     if (!parsed) return;
     await addExpense({
       amount: parsed.amount,
-      merchant: parsed.merchant,
+      title: parsed.title,
       category: parsed.category,
       date: todayISO(),
       note: parsed.note || undefined,
@@ -134,14 +134,15 @@ export default function SmsParser() {
               onChange={(e) =>
                 setParsed({ ...parsed, amount: parseFloat(e.target.value) || 0 })
               }
+              onFocus={(e) => e.target.select()}
               className="bg-transparent text-right font-bold tabular-nums w-32 focus:outline-none"
             />
           </Field>
 
-          <Field label="Merchant">
+          <Field label="Title">
             <input
-              value={parsed.merchant}
-              onChange={(e) => setParsed({ ...parsed, merchant: e.target.value })}
+              value={parsed.title}
+              onChange={(e) => setParsed({ ...parsed, title: e.target.value })}
               className="bg-transparent text-right w-full focus:outline-none"
             />
           </Field>
@@ -171,7 +172,7 @@ export default function SmsParser() {
 
           <p className="text-xs text-muted">
             Preview: <span className="text-text font-medium">{formatINR(parsed.amount)}</span> at{' '}
-            <span className="text-text font-medium">{parsed.merchant}</span>
+            <span className="text-text font-medium">{parsed.title}</span>
           </p>
 
           <button

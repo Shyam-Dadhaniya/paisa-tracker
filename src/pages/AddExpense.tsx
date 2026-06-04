@@ -12,7 +12,7 @@ import type { CategoryId, ExpenseItem } from '@/types';
 
 interface FormValues {
   amount: number;
-  merchant: string;
+  title: string;
   category: CategoryId;
   date: string;
   note?: string;
@@ -40,7 +40,7 @@ export default function AddExpense() {
     if (hasItems && itemsTotal > 0) {
       setValue('amount', itemsTotal, { shouldValidate: true });
     } else if (!hasItems) {
-      setValue('amount', 0 as unknown as number);
+      setValue('amount', '' as unknown as number);
     }
   }, [itemsTotal, hasItems, setValue]);
 
@@ -48,7 +48,7 @@ export default function AddExpense() {
     setSubmitting(true);
     await addExpense({
       amount: hasItems ? itemsTotal : Number(data.amount),
-      merchant: data.merchant.trim(),
+      title: data.title.trim(),
       category: entryType === 'income' ? '__income__' : data.category,
       date: data.date,
       type: entryType,
@@ -115,6 +115,7 @@ export default function AddExpense() {
               autoFocus={!hasItems}
               placeholder="0"
               readOnly={hasItems && !isIncome}
+              onFocus={(e) => e.target.select()}
               className={`w-full bg-surface border border-border rounded-2xl px-4 py-4 text-3xl font-bold tabular-nums focus:outline-none focus:border-primary transition ${
                 hasItems && !isIncome ? 'opacity-60 cursor-default' : ''
               }`}
@@ -123,11 +124,11 @@ export default function AddExpense() {
 
           <div>
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-              {isIncome ? 'Source' : 'Merchant'}
+              {isIncome ? 'Source' : 'Title'}
             </label>
             <input
-              {...register('merchant', { required: true })}
-              placeholder={isIncome ? 'e.g. Salary' : 'e.g. Zomato'}
+              {...register('title', { required: true })}
+              placeholder={isIncome ? 'e.g. Salary' : 'e.g. Zomato, Milk, Coffee'}
               className="w-full bg-surface border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-primary"
             />
           </div>

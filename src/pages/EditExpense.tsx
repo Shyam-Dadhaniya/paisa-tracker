@@ -13,7 +13,7 @@ import type { CategoryId, ExpenseItem } from '@/types';
 
 interface FormValues {
   amount: number;
-  merchant: string;
+  title: string;
   category: CategoryId;
   date: string;
   note?: string;
@@ -39,7 +39,7 @@ export default function EditExpense() {
     if (expense) {
       reset({
         amount: expense.amount,
-        merchant: expense.merchant,
+        title: expense.title,
         category: expense.category,
         date: expense.date,
         note: expense.note ?? '',
@@ -71,7 +71,7 @@ export default function EditExpense() {
     setSubmitting(true);
     await updateExpense(id!, {
       amount: hasItems && entryType === 'expense' ? itemsTotal : Number(data.amount),
-      merchant: data.merchant.trim(),
+      title: data.title.trim(),
       category: entryType === 'income' ? '__income__' : data.category,
       date: data.date,
       type: entryType,
@@ -150,6 +150,7 @@ export default function EditExpense() {
               autoFocus={!hasItems}
               placeholder="0"
               readOnly={hasItems && !isIncome}
+              onFocus={(e) => e.target.select()}
               className={`w-full bg-surface border border-border rounded-2xl px-4 py-4 text-3xl font-bold tabular-nums focus:outline-none focus:border-primary transition ${
                 hasItems && !isIncome ? 'opacity-60 cursor-default' : ''
               }`}
@@ -158,11 +159,11 @@ export default function EditExpense() {
 
           <div>
             <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-              {isIncome ? 'Source' : 'Merchant'}
+              {isIncome ? 'Source' : 'Title'}
             </label>
             <input
-              {...register('merchant', { required: true })}
-              placeholder={isIncome ? 'e.g. Salary' : 'e.g. Zomato'}
+              {...register('title', { required: true })}
+              placeholder={isIncome ? 'e.g. Salary' : 'e.g. Zomato, Milk, Coffee'}
               className="w-full bg-surface border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-primary"
             />
           </div>

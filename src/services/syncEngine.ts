@@ -5,7 +5,7 @@ import type { Expense, ExpenseItem } from '@/types';
 interface RemoteRow {
   id: string;
   user_id: string;
-  merchant: string;
+  title: string;
   amount: number;
   category: string;
   date: string;
@@ -23,7 +23,7 @@ function toRow(e: Expense, userId: string): RemoteRow {
   return {
     id: e.id,
     user_id: userId,
-    merchant: e.merchant,
+    title: e.title,
     amount: e.amount,
     category: e.category,
     date: e.date,
@@ -41,7 +41,7 @@ function toRow(e: Expense, userId: string): RemoteRow {
 function fromRow(r: RemoteRow): Expense {
   return {
     id: r.id,
-    merchant: r.merchant,
+    title: r.title,
     amount: Number(r.amount),
     category: r.category as Expense['category'],
     date: r.date,

@@ -9,7 +9,7 @@ export interface ExpenseItem {
 
 export interface Expense {
   id: string;
-  merchant: string;
+  title: string;
   amount: number; // rupees (decimal)
   category: CategoryId;
   date: string; // ISO date YYYY-MM-DD

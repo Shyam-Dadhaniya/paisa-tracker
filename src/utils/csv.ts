@@ -1,9 +1,9 @@
 import type { Expense } from '@/types';
 
 export function expensesToCSV(expenses: Expense[]): string {
-  const header = ['id', 'date', 'merchant', 'amount', 'category', 'note', 'source'];
+  const header = ['id', 'date', 'title', 'amount', 'category', 'note', 'source'];
   const rows = expenses.map((e) =>
-    [e.id, e.date, e.merchant, e.amount, e.category, e.note ?? '', e.source]
+    [e.id, e.date, e.title, e.amount, e.category, e.note ?? '', e.source]
       .map((v) => {
         const s = String(v);
         return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;

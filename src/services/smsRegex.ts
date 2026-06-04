@@ -2,7 +2,7 @@ import type { CategoryId } from '@/types';
 
 export interface ParsedSms {
   amount: number;
-  merchant: string;
+  title: string;
   category: CategoryId;
   note: string;
   confidence: number;
@@ -40,21 +40,21 @@ export function parseSmsRegex(sms: string): ParsedSms | null {
     return null;
   }
 
-  // Merchant: try "at MERCHANT" or "to MERCHANT" or "@ MERCHANT" or "UPI/...-MERCHANT"
-  let merchant = 'Unknown';
+  // Title: try "at TITLE" or "to TITLE" or "@ TITLE" or "UPI/...-TITLE"
+  let title = 'Unknown';
   const at = text.match(/\b(?:at|to|@|via|towards)\s+([A-Z0-9][A-Za-z0-9 .&'\-]{1,40})/);
-  if (at) merchant = at[1].trim();
+  if (at) title = at[1].trim();
   else {
     const upi = text.match(/(?:UPI|VPA)[\/\s:]+([A-Za-z0-9.\-_@]{2,40})/i);
-    if (upi) merchant = upi[1].split('@')[0];
+    if (upi) title = upi[1].split('@')[0];
   }
-  merchant = merchant.replace(/\b(on|ref|dt|info|avl|bal|a\/c).*$/i, '').trim().slice(0, 40) || 'Unknown';
+  title = title.replace(/\b(on|ref|dt|info|avl|bal|a\/c).*$/i, '').trim().slice(0, 40) || 'Unknown';
 
   return {
     amount,
-    merchant,
+    title,
     category: categorize(text),
     note: '',
-    confidence: merchant === 'Unknown' ? 0.4 : 0.65,
+    confidence: title === 'Unknown' ? 0.4 : 0.65,
   };
 }

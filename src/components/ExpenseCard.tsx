@@ -23,7 +23,7 @@ export default function ExpenseCard({ expense, onClick, showDate = true }: Props
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="font-semibold truncate">{expense.merchant}</p>
+          <p className="font-semibold truncate">{expense.title}</p>
           <p className="font-semibold tabular-nums">{formatINR(expense.amount)}</p>
         </div>
         <div className="flex items-baseline justify-between gap-2 text-xs text-muted">
