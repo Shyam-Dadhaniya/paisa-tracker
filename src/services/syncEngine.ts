@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { db } from './db';
-import type { Expense } from '@/types';
+import type { Expense, ExpenseItem } from '@/types';
 
 interface RemoteRow {
   id: string;
@@ -15,6 +15,7 @@ interface RemoteRow {
   created_at: number;
   updated_at: number;
   deleted: boolean;
+  items: ExpenseItem[] | null;
 }
 
 function toRow(e: Expense, userId: string): RemoteRow {
@@ -31,6 +32,7 @@ function toRow(e: Expense, userId: string): RemoteRow {
     created_at: e.createdAt,
     updated_at: e.updatedAt,
     deleted: e.deleted ?? false,
+    items: e.items ?? null,
   };
 }
 
@@ -48,6 +50,7 @@ function fromRow(r: RemoteRow): Expense {
     updatedAt: Number(r.updated_at),
     deleted: r.deleted,
     syncedAt: Number(r.updated_at),
+    items: r.items ?? undefined,
   };
 }
 

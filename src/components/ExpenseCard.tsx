@@ -30,6 +30,7 @@ export default function ExpenseCard({ expense, onClick, showDate = true }: Props
           <p className="truncate">
             {cat.label}
             {expense.note ? ` · ${expense.note}` : ''}
+            {expense.items && expense.items.length > 0 ? ` · ${expense.items.length} item${expense.items.length > 1 ? 's' : ''}` : ''}
           </p>
           {showDate && <p className="shrink-0">{formatDate(expense.date, 'd MMM')}</p>}
         </div>

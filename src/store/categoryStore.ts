@@ -20,7 +20,7 @@ async function reloadCategories(): Promise<Category[]> {
 interface CategoryStore {
   categories: Category[];
   loadCustomCategories: () => Promise<void>;
-  addCustomCategory: (data: { label: string; icon: string; color: string }) => Promise<void>;
+  addCustomCategory: (data: { label: string; icon: string; color: string }) => Promise<string>;
   deleteCustomCategory: (id: string) => Promise<void>;
 }
 
@@ -41,6 +41,7 @@ export const useCategoryStore = create<CategoryStore>((set) => ({
     };
     await db.customCategories.add(entry);
     set({ categories: await reloadCategories() });
+    return entry.id;
   },
 
   deleteCustomCategory: async (id) => {

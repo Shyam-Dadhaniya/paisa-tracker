@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ChevronDown } from 'lucide-react';
 import { useCategoryStore } from '@/store/categoryStore';
+import { findCategory } from '@/store/categoryStore';
 import { useExpenseStore } from '@/store/expenseStore';
 import { useExpenseById } from '@/hooks/useExpenses';
 import { formatDate } from '@/utils/format';
-import type { CategoryId } from '@/types';
+import ItemsTable from '@/components/ItemsTable';
+import CategorySheet from '@/components/CategorySheet';
+import type { CategoryId, ExpenseItem } from '@/types';
 
 interface FormValues {
   amount: number;
@@ -19,14 +22,17 @@ interface FormValues {
 export default function EditExpense() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const categories = useCategoryStore((s) => s.categories);
+  useCategoryStore((s) => s.categories);
   const updateExpense = useExpenseStore((s) => s.updateExpense);
   const deleteExpense = useExpenseStore((s) => s.deleteExpense);
   const expense = useExpenseById(id!);
   const [submitting, setSubmitting] = useState(false);
+  const [items, setItems] = useState<ExpenseItem[]>([]);
+  const [catOpen, setCatOpen] = useState(false);
 
   const { register, handleSubmit, watch, setValue, reset, formState } = useForm<FormValues>();
   const selectedCat = watch('category');
+  const selectedCategory = findCategory(selectedCat ?? 'food');
 
   useEffect(() => {
     if (expense) {
@@ -37,8 +43,20 @@ export default function EditExpense() {
         date: expense.date,
         note: expense.note ?? '',
       });
+      setItems(expense.items ?? []);
     }
   }, [expense, reset]);
+
+  const itemsTotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const hasItems = items.length > 0;
+
+  useEffect(() => {
+    if (hasItems && itemsTotal > 0) {
+      setValue('amount', itemsTotal, { shouldValidate: true });
+    } else if (!hasItems && expense) {
+      setValue('amount', expense.amount, { shouldValidate: true });
+    }
+  }, [itemsTotal, hasItems, setValue, expense]);
 
   const handleDelete = async () => {
     if (confirm('Delete this expense?')) {
@@ -50,11 +68,12 @@ export default function EditExpense() {
   const onSubmit = async (data: FormValues) => {
     setSubmitting(true);
     await updateExpense(id!, {
-      amount: Number(data.amount),
+      amount: hasItems ? itemsTotal : Number(data.amount),
       merchant: data.merchant.trim(),
       category: data.category,
       date: data.date,
       note: data.note?.trim() || undefined,
+      items: items.length > 0 ? items : undefined,
     });
     navigate('/history');
   };
@@ -88,15 +107,23 @@ export default function EditExpense() {
         <div>
           <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
             Amount (₹)
+            {hasItems && (
+              <span className="ml-2 text-[10px] text-primary normal-case tracking-normal font-normal">
+                auto from items
+              </span>
+            )}
           </label>
           <input
             {...register('amount', { required: true, min: 0.01 })}
             type="number"
             inputMode="decimal"
             step="0.01"
-            autoFocus
+            autoFocus={!hasItems}
             placeholder="0"
-            className="w-full bg-surface border border-border rounded-2xl px-4 py-4 text-3xl font-bold tabular-nums focus:outline-none focus:border-primary"
+            readOnly={hasItems}
+            className={`w-full bg-surface border border-border rounded-2xl px-4 py-4 text-3xl font-bold tabular-nums focus:outline-none focus:border-primary transition ${
+              hasItems ? 'opacity-60 cursor-default' : ''
+            }`}
           />
         </div>
 
@@ -115,27 +142,18 @@ export default function EditExpense() {
           <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
             Category
           </label>
-          <div className="grid grid-cols-4 gap-2">
-            {categories.map((c) => {
-              const active = selectedCat === c.id;
-              return (
-                <button
-                  type="button"
-                  key={c.id}
-                  onClick={() => setValue('category', c.id, { shouldValidate: true })}
-                  className={`flex flex-col items-center gap-1 py-3 rounded-xl border transition active:scale-95 ${
-                    active
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border bg-surface'
-                  }`}
-                >
-                  <span className="text-2xl">{c.icon}</span>
-                  <span className="text-[11px]">{c.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            onClick={() => setCatOpen(true)}
+            className="w-full flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3 text-left active:scale-[0.98] transition"
+          >
+            <span className="text-2xl">{selectedCategory.icon}</span>
+            <span className="font-medium flex-1">{selectedCategory.label}</span>
+            <ChevronDown size={18} className="text-muted" />
+          </button>
         </div>
+
+        <ItemsTable items={items} onChange={setItems} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -181,6 +199,13 @@ export default function EditExpense() {
           Delete entry
         </button>
       </form>
+
+      <CategorySheet
+        open={catOpen}
+        onClose={() => setCatOpen(false)}
+        selected={selectedCat}
+        onSelect={(id) => setValue('category', id, { shouldValidate: true })}
+      />
     </main>
   );
 }

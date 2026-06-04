@@ -1,5 +1,12 @@
 export type CategoryId = string;
 
+export interface ExpenseItem {
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+}
+
 export interface Expense {
   id: string;
   merchant: string;
@@ -9,6 +16,7 @@ export interface Expense {
   note?: string;
   source: 'manual' | 'sms' | 'recurring';
   smsRaw?: string;
+  items?: ExpenseItem[];
   createdAt: number;
   updatedAt: number;
   syncedAt?: number;
