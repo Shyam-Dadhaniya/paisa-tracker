@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ChevronLeft, ChevronDown } from 'lucide-react';
@@ -39,8 +39,6 @@ export default function AddExpense() {
   const { register, handleSubmit, watch, setValue, formState } = useForm<FormValues>({
     defaultValues: { date: todayISO(), time: currentTimeHHMM(), category: 'food' },
   });
-  const timeInputRef = useRef<HTMLInputElement | null>(null);
-  const { ref: timeRHFRef, ...timeRegisterProps } = register('time', { required: true });
   const selectedCat = watch('category');
   const selectedCategory = findCategory(selectedCat ?? 'food');
 
@@ -244,22 +242,16 @@ export default function AddExpense() {
               <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
                 Time
               </label>
-              <div
-                className="relative w-full bg-surface border border-border rounded-xl px-3 py-3 cursor-pointer select-none"
-                onClick={() => {
-                  if (!timeInputRef.current) return;
-                  try { (timeInputRef.current as any).showPicker(); }
-                  catch { timeInputRef.current.click(); }
-                }}
-              >
-                <span>{watch('time') ? formatTime(watch('time')) : 'Select time'}</span>
+              <div className="relative w-full">
+                <div className="w-full bg-surface border border-border rounded-xl px-3 py-3 pointer-events-none select-none">
+                  {watch('time') ? formatTime(watch('time')) : 'Select time'}
+                </div>
                 <input
-                  {...timeRegisterProps}
+                  {...register('time', { required: true })}
                   type="time"
-                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-                  ref={(el) => {
-                    timeRHFRef(el);
-                    timeInputRef.current = el;
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onClick={(e) => {
+                    try { (e.currentTarget as any).showPicker(); } catch { /* iOS: native picker already open */ }
                   }}
                 />
               </div>
