@@ -23,3 +23,15 @@ export function todayISO(): string {
 export function monthKey(iso: string): string {
   return iso.slice(0, 7); // YYYY-MM
 }
+
+export function currentTimeHHMM(): string {
+  return format(new Date(), 'HH:mm');
+}
+
+export function formatTime(time: string): string {
+  try {
+    return format(parseISO(`1970-01-01T${time}`), 'h:mm a');
+  } catch {
+    return time;
+  }
+}

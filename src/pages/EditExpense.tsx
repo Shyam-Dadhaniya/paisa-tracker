@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ChevronLeft, ChevronDown } from 'lucide-react';
@@ -7,7 +7,7 @@ import { findCategory } from '@/store/categoryStore';
 import { useExpenseStore } from '@/store/expenseStore';
 import { usePaymentSourceStore } from '@/store/paymentSourceStore';
 import { useExpenseById } from '@/hooks/useExpenses';
-import { formatDate } from '@/utils/format';
+import { formatDate, currentTimeHHMM, formatTime } from '@/utils/format';
 import { PAYMENT_MODE_META, resolveSourceLabel } from '@/utils/paymentSources';
 import ItemsTable from '@/components/ItemsTable';
 import CategorySheet from '@/components/CategorySheet';
@@ -19,6 +19,7 @@ interface FormValues {
   title: string;
   category: CategoryId;
   date: string;
+  time: string;
   note?: string;
 }
 
@@ -40,6 +41,8 @@ export default function EditExpense() {
   const paymentSources = usePaymentSourceStore((s) => s.paymentSources);
 
   const { register, handleSubmit, watch, setValue, reset, formState } = useForm<FormValues>();
+  const timeInputRef = useRef<HTMLInputElement | null>(null);
+  const { ref: timeRHFRef, ...timeRegisterProps } = register('time', { required: true });
   const selectedCat = watch('category');
   const selectedCategory = findCategory(selectedCat ?? 'food');
 
@@ -50,6 +53,7 @@ export default function EditExpense() {
         title: expense.title,
         category: expense.category,
         date: expense.date,
+        time: expense.time ?? currentTimeHHMM(),
         note: expense.note ?? '',
       });
       setItems(expense.items ?? []);
@@ -94,6 +98,7 @@ export default function EditExpense() {
       title: data.title.trim(),
       category: entryType === 'income' ? '__income__' : data.category,
       date: data.date,
+      time: data.time,
       type: entryType,
       note: data.note?.trim() || undefined,
       items: entryType === 'expense' && items.length > 0 ? items : undefined,
@@ -257,7 +262,7 @@ export default function EditExpense() {
 
           {!isIncome && <ItemsTable items={items} onChange={setItems} />}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
                 Date
@@ -275,14 +280,38 @@ export default function EditExpense() {
             </div>
             <div>
               <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-                Note
+                Time
               </label>
-              <input
-                {...register('note')}
-                placeholder="Optional"
-                className="w-full bg-surface border border-border rounded-xl px-3 py-3 focus:outline-none focus:border-primary"
-              />
+              <div
+                className="relative w-full bg-surface border border-border rounded-xl px-3 py-3 cursor-pointer select-none"
+                onClick={() => {
+                  if (!timeInputRef.current) return;
+                  try { (timeInputRef.current as any).showPicker(); }
+                  catch { timeInputRef.current.click(); }
+                }}
+              >
+                <span>{watch('time') ? formatTime(watch('time')) : 'Select time'}</span>
+                <input
+                  {...timeRegisterProps}
+                  type="time"
+                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+                  ref={(el) => {
+                    timeRHFRef(el);
+                    timeInputRef.current = el;
+                  }}
+                />
+              </div>
             </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
+              Note
+            </label>
+            <input
+              {...register('note')}
+              placeholder="Optional"
+              className="w-full bg-surface border border-border rounded-xl px-3 py-3 focus:outline-none focus:border-primary"
+            />
           </div>
         </div>
 

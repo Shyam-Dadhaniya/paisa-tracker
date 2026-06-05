@@ -29,7 +29,7 @@ async function syncCustomCategories(userId: string): Promise<string | undefined>
     if (error) return error.message;
   }
 
-  // Pull remote → local (add any missing)
+  // Pull remote → local (upsert so renamed/updated categories sync correctly)
   const { data, error: pullErr } = await supabase
     .from('custom_categories')
     .select('*')
@@ -38,16 +38,13 @@ async function syncCustomCategories(userId: string): Promise<string | undefined>
   if (data && data.length > 0) {
     await db.transaction('rw', db.customCategories, async () => {
       for (const row of data as RemoteCatRow[]) {
-        const exists = await db.customCategories.get(row.id);
-        if (!exists) {
-          await db.customCategories.add({
-            id: row.id,
-            label: row.label,
-            icon: row.icon,
-            color: row.color,
-            createdAt: row.created_at,
-          });
-        }
+        await db.customCategories.put({
+          id: row.id,
+          label: row.label,
+          icon: row.icon,
+          color: row.color,
+          createdAt: row.created_at,
+        });
       }
     });
   }
@@ -60,6 +57,7 @@ interface RemoteRow {
   amount: number;
   category: string;
   date: string;
+  time: string | null;
   type: string;
   note: string | null;
   source: string;
@@ -80,6 +78,7 @@ function toRow(e: Expense, userId: string): RemoteRow {
     amount: e.amount ?? 0,
     category: e.category || 'other',
     date: e.date || new Date().toISOString().slice(0, 10),
+    time: e.time ?? null,
     type: e.type ?? 'expense',
     note: e.note ?? null,
     source: e.source ?? 'manual',
@@ -100,6 +99,7 @@ function fromRow(r: RemoteRow): Expense {
     amount: Number(r.amount),
     category: r.category as Expense['category'],
     date: r.date,
+    time: r.time ?? undefined,
     type: (r.type ?? 'expense') as Expense['type'],
     note: r.note ?? undefined,
     source: r.source as Expense['source'],
@@ -171,16 +171,13 @@ async function syncPaymentSources(userId: string): Promise<string | undefined> {
     if (data && data.length > 0) {
       await db.transaction('rw', db.paymentSources, async () => {
         for (const row of data as RemotePaymentSourceRow[]) {
-          const exists = await db.paymentSources.get(row.id);
-          if (!exists) {
-            await db.paymentSources.add({
-              id: row.id,
-              type: row.type as 'bank' | 'credit_card',
-              name: row.name,
-              bankName: row.bank_name ?? undefined,
-              createdAt: row.created_at,
-            });
-          }
+          await db.paymentSources.put({
+            id: row.id,
+            type: row.type as 'bank' | 'credit_card',
+            name: row.name,
+            bankName: row.bank_name ?? undefined,
+            createdAt: row.created_at,
+          });
         }
       });
     }
