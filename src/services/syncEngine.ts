@@ -2,6 +2,53 @@ import { supabase } from './supabase';
 import { db } from './db';
 import type { Expense, ExpenseItem } from '@/types';
 
+interface RemoteCatRow {
+  id: string;
+  user_id: string;
+  label: string;
+  icon: string;
+  color: string;
+  created_at: number;
+}
+
+async function syncCustomCategories(userId: string): Promise<void> {
+  // Push local → remote
+  const local = await db.customCategories.toArray();
+  if (local.length > 0) {
+    const rows: RemoteCatRow[] = local.map((c) => ({
+      id: c.id,
+      user_id: userId,
+      label: c.label,
+      icon: c.icon,
+      color: c.color,
+      created_at: c.createdAt,
+    }));
+    await supabase.from('custom_categories').upsert(rows, { onConflict: 'id' });
+  }
+
+  // Pull remote → local (add any missing)
+  const { data } = await supabase
+    .from('custom_categories')
+    .select('*')
+    .eq('user_id', userId);
+  if (data && data.length > 0) {
+    await db.transaction('rw', db.customCategories, async () => {
+      for (const row of data as RemoteCatRow[]) {
+        const exists = await db.customCategories.get(row.id);
+        if (!exists) {
+          await db.customCategories.add({
+            id: row.id,
+            label: row.label,
+            icon: row.icon,
+            color: row.color,
+            createdAt: row.created_at,
+          });
+        }
+      }
+    });
+  }
+}
+
 interface RemoteRow {
   id: string;
   user_id: string;
@@ -130,6 +177,9 @@ export async function syncNow(userId: string): Promise<SyncResult> {
     });
     writeMeta({ lastPulledAt: newest });
   }
+
+  // 3) Sync custom categories (push + pull)
+  await syncCustomCategories(userId);
 
   return { pushed, pulled };
 }

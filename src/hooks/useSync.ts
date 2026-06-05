@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { syncNow } from '@/services/syncEngine';
+import { useCategoryStore } from '@/store/categoryStore';
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error' | 'offline' | 'signed-out';
 
@@ -33,6 +34,8 @@ export function useSync() {
       setState({ status: result.error === 'offline' ? 'offline' : 'error', lastSyncedAt: null, error: result.error });
     } else {
       setState({ status: 'synced', lastSyncedAt: Date.now(), error: null });
+      // Reload custom categories in case new ones were pulled from remote
+      await useCategoryStore.getState().loadCustomCategories();
     }
   }, [user]);
 
