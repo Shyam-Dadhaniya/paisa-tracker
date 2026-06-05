@@ -11,7 +11,7 @@ interface RemoteCatRow {
   created_at: number;
 }
 
-async function syncCustomCategories(userId: string): Promise<void> {
+async function syncCustomCategories(userId: string): Promise<string | undefined> {
   // Push local → remote
   const local = await db.customCategories.toArray();
   if (local.length > 0) {
@@ -23,14 +23,18 @@ async function syncCustomCategories(userId: string): Promise<void> {
       color: c.color,
       created_at: c.createdAt,
     }));
-    await supabase.from('custom_categories').upsert(rows, { onConflict: 'id' });
+    const { error } = await supabase
+      .from('custom_categories')
+      .upsert(rows, { onConflict: 'id' });
+    if (error) return error.message;
   }
 
   // Pull remote → local (add any missing)
-  const { data } = await supabase
+  const { data, error: pullErr } = await supabase
     .from('custom_categories')
     .select('*')
     .eq('user_id', userId);
+  if (pullErr) return pullErr.message;
   if (data && data.length > 0) {
     await db.transaction('rw', db.customCategories, async () => {
       for (const row of data as RemoteCatRow[]) {
@@ -129,6 +133,10 @@ export interface SyncResult {
 export async function syncNow(userId: string): Promise<SyncResult> {
   if (!navigator.onLine) return { pushed: 0, pulled: 0, error: 'offline' };
 
+  // 0) Sync custom categories first — runs independently of expense sync
+  const catError = await syncCustomCategories(userId);
+  if (catError) console.warn('Custom category sync error:', catError);
+
   // 1) Push local dirty rows (syncedAt missing or stale)
   const all = await db.expenses.toArray();
   const dirty = all.filter((e) => !e.syncedAt || e.syncedAt < e.updatedAt);
@@ -177,9 +185,6 @@ export async function syncNow(userId: string): Promise<SyncResult> {
     });
     writeMeta({ lastPulledAt: newest });
   }
-
-  // 3) Sync custom categories (push + pull)
-  await syncCustomCategories(userId);
 
   return { pushed, pulled };
 }
