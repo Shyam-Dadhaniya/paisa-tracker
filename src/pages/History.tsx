@@ -1,20 +1,23 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, subMonths, addMonths, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SlidersHorizontal, Download } from 'lucide-react';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { useCategoryStore } from '@/store/categoryStore';
 import { formatDate, formatINR, monthKey, todayISO } from '@/utils/format';
 import ExpenseCard from '@/components/ExpenseCard';
 import CategoryFilterSheet from '@/components/CategoryFilterSheet';
-import type { CategoryId, Expense } from '@/types';
+import PdfExportSheet from '@/components/PdfExportSheet';
+import type { CategoryId, Expense, PaymentMode } from '@/types';
 
 export default function History() {
   const navigate = useNavigate();
   useCategoryStore((s) => s.categories);
   const expenses = useAllExpenses();
   const [filters, setFilters] = useState<CategoryId[]>([]);
+  const [paymentFilters, setPaymentFilters] = useState<PaymentMode[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => monthKey(todayISO()));
 
   function prevMonth() {
@@ -37,8 +40,9 @@ export default function History() {
     () =>
       expenses
         .filter((e) => monthKey(e.date) === selectedMonth)
-        .filter((e) => filters.length === 0 || filters.includes(e.category)),
-    [expenses, selectedMonth, filters],
+        .filter((e) => filters.length === 0 || filters.includes(e.category))
+        .filter((e) => paymentFilters.length === 0 || paymentFilters.includes(e.paymentMode as PaymentMode)),
+    [expenses, selectedMonth, filters, paymentFilters],
   );
 
   const summary = useMemo(() => {
@@ -84,18 +88,27 @@ export default function History() {
               <ChevronRight size={18} />
             </button>
           </div>
-          <button
-            onClick={() => setFilterOpen(true)}
-            className="relative p-1 text-muted hover:text-primary transition"
-            aria-label="Filter by category"
-          >
-            <SlidersHorizontal size={18} />
-            {filters.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] flex items-center justify-center font-bold">
-                {filters.length}
-              </span>
-            )}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setFilterOpen(true)}
+              className="relative p-1 text-muted hover:text-primary transition"
+              aria-label="Filter by category"
+            >
+              <SlidersHorizontal size={18} />
+              {(filters.length + paymentFilters.length) > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] flex items-center justify-center font-bold">
+                  {filters.length + paymentFilters.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setPdfOpen(true)}
+              className="p-1 text-muted hover:text-primary transition"
+              aria-label="Export PDF"
+            >
+              <Download size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Summary row */}
@@ -123,11 +136,12 @@ export default function History() {
             const total = items.reduce((s, e) => s + e.amount, 0);
             return (
               <section key={date}>
-                <div className="flex justify-between items-baseline mb-2 px-1">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <div className="flex items-center gap-3 mb-2 px-1">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted shrink-0">
                     {formatDate(date, 'EEE, d MMM')}
                   </h2>
-                  <span className="text-xs text-muted tabular-nums">{formatINR(total)}</span>
+                  <div className="flex-1 h-px bg-border/50" />
+                  <span className="text-xs text-muted tabular-nums shrink-0">{formatINR(total)}</span>
                 </div>
                 <div className="space-y-2">
                   {items.map((e) => (
@@ -151,6 +165,19 @@ export default function History() {
         selected={filters}
         onToggle={toggleFilter}
         onClear={clearFilters}
+        paymentFilter={paymentFilters}
+        onPaymentToggle={(mode) =>
+          setPaymentFilters((prev) =>
+            prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode],
+          )
+        }
+        onPaymentClear={() => setPaymentFilters([])}
+      />
+      <PdfExportSheet
+        open={pdfOpen}
+        onClose={() => setPdfOpen(false)}
+        defaultMonth={selectedMonth}
+        defaultCategories={filters}
       />
     </main>
   );

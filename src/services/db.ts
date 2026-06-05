@@ -1,9 +1,10 @@
 import Dexie, { type Table } from 'dexie';
-import type { Expense, CustomCategory } from '@/types';
+import type { Expense, CustomCategory, PaymentSource } from '@/types';
 
 class PaisaTrackDB extends Dexie {
   expenses!: Table<Expense, string>;
   customCategories!: Table<CustomCategory, string>;
+  paymentSources!: Table<PaymentSource, string>;
 
   constructor() {
     super('paisatrack');
@@ -13,6 +14,11 @@ class PaisaTrackDB extends Dexie {
     this.version(2).stores({
       expenses: 'id, date, category, createdAt, updatedAt, deleted',
       customCategories: 'id, createdAt',
+    });
+    this.version(3).stores({
+      expenses: 'id, date, category, createdAt, updatedAt, deleted',
+      customCategories: 'id, createdAt',
+      paymentSources: 'id, type, createdAt',
     });
   }
 }

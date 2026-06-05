@@ -5,11 +5,14 @@ import { ChevronLeft, ChevronDown } from 'lucide-react';
 import { useCategoryStore } from '@/store/categoryStore';
 import { findCategory } from '@/store/categoryStore';
 import { useExpenseStore } from '@/store/expenseStore';
+import { usePaymentSourceStore } from '@/store/paymentSourceStore';
 import { useExpenseById } from '@/hooks/useExpenses';
 import { formatDate } from '@/utils/format';
+import { PAYMENT_MODE_META, resolveSourceLabel } from '@/utils/paymentSources';
 import ItemsTable from '@/components/ItemsTable';
 import CategorySheet from '@/components/CategorySheet';
-import type { CategoryId, ExpenseItem } from '@/types';
+import PaymentSourcePickerSheet from '@/components/PaymentSourcePickerSheet';
+import type { CategoryId, ExpenseItem, PaymentMode } from '@/types';
 
 interface FormValues {
   amount: number;
@@ -30,6 +33,11 @@ export default function EditExpense() {
   const [items, setItems] = useState<ExpenseItem[]>([]);
   const [catOpen, setCatOpen] = useState(false);
   const [entryType, setEntryType] = useState<'expense' | 'income'>('expense');
+  const [selectedMode, setSelectedMode] = useState<PaymentMode | null>(null);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>(undefined);
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
+
+  const paymentSources = usePaymentSourceStore((s) => s.paymentSources);
 
   const { register, handleSubmit, watch, setValue, reset, formState } = useForm<FormValues>();
   const selectedCat = watch('category');
@@ -46,6 +54,8 @@ export default function EditExpense() {
       });
       setItems(expense.items ?? []);
       setEntryType(expense.type ?? 'expense');
+      setSelectedMode(expense.paymentMode ?? null);
+      setSelectedSourceId(expense.paymentSourceId);
     }
   }, [expense, reset]);
 
@@ -67,6 +77,16 @@ export default function EditExpense() {
     }
   };
 
+  function handleModeSelect(mode: PaymentMode) {
+    if (selectedMode === mode) {
+      setSelectedMode(null);
+      setSelectedSourceId(undefined);
+    } else {
+      setSelectedMode(mode);
+      setSelectedSourceId(undefined);
+    }
+  }
+
   const onSubmit = async (data: FormValues) => {
     setSubmitting(true);
     await updateExpense(id!, {
@@ -77,6 +97,8 @@ export default function EditExpense() {
       type: entryType,
       note: data.note?.trim() || undefined,
       items: entryType === 'expense' && items.length > 0 ? items : undefined,
+      paymentMode: selectedMode ?? undefined,
+      paymentSourceId: selectedSourceId,
     });
     navigate('/history');
   };
@@ -185,6 +207,54 @@ export default function EditExpense() {
             </div>
           )}
 
+          {!isIncome && (
+            <div>
+              <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
+                Payment Mode
+              </label>
+              <div className="flex gap-2">
+                {(['cash', 'online', 'credit_card'] as PaymentMode[]).map((mode) => {
+                  const meta = PAYMENT_MODE_META[mode];
+                  const active = selectedMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => handleModeSelect(mode)}
+                      className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition active:scale-95 ${
+                        active
+                          ? 'bg-primary/20 border-primary text-primary'
+                          : 'bg-surface border-border text-muted'
+                      }`}
+                    >
+                      <span className="text-base">{meta.icon}</span>
+                      <span className="leading-tight text-center">{meta.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {(selectedMode === 'online' || selectedMode === 'credit_card') && (
+                <button
+                  type="button"
+                  onClick={() => setSourcePickerOpen(true)}
+                  className="mt-2 w-full flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3 text-left active:scale-[0.98] transition"
+                >
+                  <span className="text-lg">
+                    {selectedMode === 'online' ? '🏦' : '💳'}
+                  </span>
+                  <span className={`flex-1 text-sm ${selectedSourceId ? '' : 'text-muted'}`}>
+                    {selectedSourceId
+                      ? resolveSourceLabel(selectedSourceId, paymentSources)
+                      : selectedMode === 'online'
+                      ? 'Select Bank'
+                      : 'Select Card'}
+                  </span>
+                  <ChevronDown size={16} className="text-muted" />
+                </button>
+              )}
+            </div>
+          )}
+
           {!isIncome && <ItemsTable items={items} onChange={setItems} />}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -245,6 +315,15 @@ export default function EditExpense() {
           onClose={() => setCatOpen(false)}
           selected={selectedCat}
           onSelect={(id) => setValue('category', id, { shouldValidate: true })}
+        />
+      )}
+      {!isIncome && (selectedMode === 'online' || selectedMode === 'credit_card') && (
+        <PaymentSourcePickerSheet
+          open={sourcePickerOpen}
+          onClose={() => setSourcePickerOpen(false)}
+          type={selectedMode === 'online' ? 'bank' : 'credit_card'}
+          selectedId={selectedSourceId}
+          onSelect={(s) => setSelectedSourceId(s.id)}
         />
       )}
     </main>

@@ -60,7 +60,7 @@ interface RemoteRow {
   amount: number;
   category: string;
   date: string;
-  type: string; // 'expense' | 'income'
+  type: string;
   note: string | null;
   source: string;
   sms_raw: string | null;
@@ -68,24 +68,28 @@ interface RemoteRow {
   updated_at: number;
   deleted: boolean;
   items: ExpenseItem[] | null;
+  payment_mode: string | null;
+  payment_source_id: string | null;
 }
 
 function toRow(e: Expense, userId: string): RemoteRow {
   return {
     id: e.id,
     user_id: userId,
-    title: e.title,
-    amount: e.amount,
-    category: e.category,
-    date: e.date,
+    title: e.title || '',
+    amount: e.amount ?? 0,
+    category: e.category || 'other',
+    date: e.date || new Date().toISOString().slice(0, 10),
     type: e.type ?? 'expense',
     note: e.note ?? null,
-    source: e.source,
+    source: e.source ?? 'manual',
     sms_raw: e.smsRaw ?? null,
     created_at: e.createdAt,
     updated_at: e.updatedAt,
     deleted: e.deleted ?? false,
     items: e.items ?? null,
+    payment_mode: e.paymentMode ?? null,
+    payment_source_id: e.paymentSourceId ?? null,
   };
 }
 
@@ -105,6 +109,8 @@ function fromRow(r: RemoteRow): Expense {
     deleted: r.deleted,
     syncedAt: Number(r.updated_at),
     items: r.items ?? undefined,
+    paymentMode: (r.payment_mode as Expense['paymentMode']) ?? undefined,
+    paymentSourceId: r.payment_source_id ?? undefined,
   };
 }
 
@@ -130,12 +136,67 @@ export interface SyncResult {
   error?: string;
 }
 
+interface RemotePaymentSourceRow {
+  id: string;
+  user_id: string;
+  type: string;
+  name: string;
+  bank_name: string | null;
+  created_at: number;
+}
+
+async function syncPaymentSources(userId: string): Promise<string | undefined> {
+  try {
+    const local = await db.paymentSources.filter((s) => !s.deleted).toArray();
+    if (local.length > 0) {
+      const rows: RemotePaymentSourceRow[] = local.map((s) => ({
+        id: s.id,
+        user_id: userId,
+        type: s.type,
+        name: s.name,
+        bank_name: s.bankName ?? null,
+        created_at: s.createdAt,
+      }));
+      const { error } = await supabase
+        .from('payment_sources')
+        .upsert(rows, { onConflict: 'id' });
+      if (error) return error.message;
+    }
+
+    const { data, error: pullErr } = await supabase
+      .from('payment_sources')
+      .select('*')
+      .eq('user_id', userId);
+    if (pullErr) return pullErr.message;
+    if (data && data.length > 0) {
+      await db.transaction('rw', db.paymentSources, async () => {
+        for (const row of data as RemotePaymentSourceRow[]) {
+          const exists = await db.paymentSources.get(row.id);
+          if (!exists) {
+            await db.paymentSources.add({
+              id: row.id,
+              type: row.type as 'bank' | 'credit_card',
+              name: row.name,
+              bankName: row.bank_name ?? undefined,
+              createdAt: row.created_at,
+            });
+          }
+        }
+      });
+    }
+  } catch (e) {
+    return String(e);
+  }
+}
+
 export async function syncNow(userId: string): Promise<SyncResult> {
   if (!navigator.onLine) return { pushed: 0, pulled: 0, error: 'offline' };
 
-  // 0) Sync custom categories first — runs independently of expense sync
+  // 0) Sync custom categories and payment sources — run independently of expense sync
   const catError = await syncCustomCategories(userId);
   if (catError) console.warn('Custom category sync error:', catError);
+  const psError = await syncPaymentSources(userId);
+  if (psError) console.warn('Payment source sync error:', psError);
 
   // 1) Push local dirty rows (syncedAt missing or stale)
   const all = await db.expenses.toArray();

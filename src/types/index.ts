@@ -1,5 +1,16 @@
 export type CategoryId = string;
 
+export type PaymentMode = 'cash' | 'online' | 'credit_card';
+
+export interface PaymentSource {
+  id: string;
+  type: 'bank' | 'credit_card';
+  name: string;
+  bankName?: string;
+  createdAt: number;
+  deleted?: boolean;
+}
+
 export interface ExpenseItem {
   id: string;
   name: string;
@@ -22,6 +33,8 @@ export interface Expense {
   updatedAt: number;
   syncedAt?: number;
   deleted?: boolean;
+  paymentMode?: PaymentMode;
+  paymentSourceId?: string;
 }
 
 export interface Category {
