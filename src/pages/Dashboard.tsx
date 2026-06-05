@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ChevronUp } from 'lucide-react';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { formatINR, todayISO, monthKey } from '@/utils/format';
 import { useCategoryStore } from '@/store/categoryStore';
@@ -31,6 +32,9 @@ export default function Dashboard() {
   const sortedCats = categories.filter((c) => stats.byCat[c.id]).sort(
     (a, b) => (stats.byCat[b.id] ?? 0) - (stats.byCat[a.id] ?? 0),
   );
+  const [showAllCats, setShowAllCats] = useState(false);
+  const visibleCats = showAllCats ? sortedCats : sortedCats.slice(0, 2);
+  const hiddenCount = sortedCats.length - 2;
 
   return (
     <main className="safe-top safe-bottom max-w-md mx-auto px-4">
@@ -55,11 +59,25 @@ export default function Dashboard() {
 
       {sortedCats.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">
-            This month by category
-          </h2>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-sm font-semibold text-muted uppercase tracking-wider">
+              This month by category
+            </h2>
+            {hiddenCount > 0 && (
+              <button
+                onClick={() => setShowAllCats((v) => !v)}
+                className="text-sm text-primary flex items-center gap-0.5 active:opacity-70 transition"
+              >
+                {showAllCats ? (
+                  <><ChevronUp size={14} /><span>Less</span></>
+                ) : (
+                  <span>See all</span>
+                )}
+              </button>
+            )}
+          </div>
           <div className="space-y-2">
-            {sortedCats.map((c) => {
+            {visibleCats.map((c) => {
               const v = stats.byCat[c.id] ?? 0;
               const pct = stats.monthTotal ? (v / stats.monthTotal) * 100 : 0;
               return (
