@@ -2,6 +2,8 @@ import Dexie, { type Table } from 'dexie';
 import { format } from 'date-fns';
 import type { Expense, CustomCategory, PaymentSource } from '@/types';
 
+type Syncable = { createdAt: number; updatedAt?: number; syncedAt?: number };
+
 class PaisaTrackDB extends Dexie {
   expenses!: Table<Expense, string>;
   customCategories!: Table<CustomCategory, string>;
@@ -45,6 +47,19 @@ class PaisaTrackDB extends Dexie {
           expense.type = 'expense';
         }
       });
+    });
+    this.version(6).stores({
+      expenses: 'id, date, category, type, createdAt, updatedAt, deleted',
+      customCategories: 'id, createdAt',
+      paymentSources: 'id, type, createdAt',
+    }).upgrade(async (tx) => {
+      // Backfill sync timestamps so existing rows are not treated as dirty.
+      const backfill = (row: Syncable) => {
+        if (row.updatedAt == null) row.updatedAt = row.createdAt;
+        if (row.syncedAt == null) row.syncedAt = row.updatedAt;
+      };
+      await tx.table('customCategories').toCollection().modify(backfill);
+      await tx.table('paymentSources').toCollection().modify(backfill);
     });
   }
 }

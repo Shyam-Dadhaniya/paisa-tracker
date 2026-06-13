@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { db } from '@/services/db';
+import { triggerSync } from './triggerSync';
 import { CATEGORIES } from '@/utils/categories';
 import type { Category, CustomCategory } from '@/types';
 
@@ -13,7 +14,10 @@ function toCategory(c: CustomCategory): Category {
 }
 
 async function reloadCategories(): Promise<Category[]> {
-  const custom = await db.customCategories.orderBy('createdAt').toArray();
+  const custom = await db.customCategories
+    .orderBy('createdAt')
+    .filter((c) => !c.deleted)
+    .toArray();
   return [...CATEGORIES, ...custom.map(toCategory)];
 }
 
@@ -32,21 +36,26 @@ export const useCategoryStore = create<CategoryStore>((set) => ({
   },
 
   addCustomCategory: async ({ label, icon, color }) => {
+    const now = Date.now();
     const entry: CustomCategory = {
       id: 'custom_' + crypto.randomUUID(),
       label,
       icon,
       color,
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     };
     await db.customCategories.add(entry);
     set({ categories: await reloadCategories() });
+    triggerSync();
     return entry.id;
   },
 
   deleteCustomCategory: async (id) => {
-    await db.customCategories.delete(id);
+    // Soft-delete so the tombstone propagates to the cloud and other devices.
+    await db.customCategories.update(id, { deleted: true, updatedAt: Date.now() });
     set({ categories: await reloadCategories() });
+    triggerSync();
   },
 }));
 

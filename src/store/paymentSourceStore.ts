@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { db } from '@/services/db';
+import { triggerSync } from './triggerSync';
 import type { PaymentSource } from '@/types';
 
 async function reload(): Promise<PaymentSource[]> {
@@ -28,15 +29,18 @@ export const usePaymentSourceStore = create<PaymentSourceStore>((set) => ({
   },
 
   addPaymentSource: async ({ type, name, bankName }) => {
+    const now = Date.now();
     const entry: PaymentSource = {
       id: 'ps_' + crypto.randomUUID(),
       type,
       name: name.trim(),
       bankName: bankName?.trim() || undefined,
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     };
     await db.paymentSources.add(entry);
     set({ paymentSources: await reload() });
+    triggerSync();
     return entry.id;
   },
 
@@ -47,8 +51,10 @@ export const usePaymentSourceStore = create<PaymentSourceStore>((set) => ({
     if (linked > 0) {
       return { blocked: false, count: linked };
     }
-    await db.paymentSources.update(id, { deleted: true });
+    // Soft-delete so the tombstone propagates to the cloud and other devices.
+    await db.paymentSources.update(id, { deleted: true, updatedAt: Date.now() });
     set({ paymentSources: await reload() });
+    triggerSync();
     return { blocked: false, count: 0 };
   },
 }));

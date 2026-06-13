@@ -9,27 +9,37 @@ interface RemoteCatRow {
   icon: string;
   color: string;
   created_at: number;
+  updated_at: number;
+  deleted: boolean;
 }
 
 async function syncCustomCategories(userId: string): Promise<string | undefined> {
-  // Push local → remote
+  // Push only dirty rows (including soft-deletes, so tombstones propagate).
   const local = await db.customCategories.toArray();
-  if (local.length > 0) {
-    const rows: RemoteCatRow[] = local.map((c) => ({
+  const dirty = local.filter((c) => !c.syncedAt || c.syncedAt < (c.updatedAt ?? c.createdAt));
+  if (dirty.length > 0) {
+    const rows: RemoteCatRow[] = dirty.map((c) => ({
       id: c.id,
       user_id: userId,
       label: c.label,
       icon: c.icon,
       color: c.color,
       created_at: c.createdAt,
+      updated_at: c.updatedAt ?? c.createdAt,
+      deleted: c.deleted ?? false,
     }));
     const { error } = await supabase
       .from('custom_categories')
       .upsert(rows, { onConflict: 'id' });
     if (error) return error.message;
+    await db.transaction('rw', db.customCategories, async () => {
+      for (const c of dirty) {
+        await db.customCategories.update(c.id, { syncedAt: c.updatedAt ?? c.createdAt });
+      }
+    });
   }
 
-  // Pull remote → local (upsert so renamed/updated categories sync correctly)
+  // Pull remote → local with last-write-wins + tombstone handling.
   const { data, error: pullErr } = await supabase
     .from('custom_categories')
     .select('*')
@@ -38,13 +48,23 @@ async function syncCustomCategories(userId: string): Promise<string | undefined>
   if (data && data.length > 0) {
     await db.transaction('rw', db.customCategories, async () => {
       for (const row of data as RemoteCatRow[]) {
-        await db.customCategories.put({
-          id: row.id,
-          label: row.label,
-          icon: row.icon,
-          color: row.color,
-          createdAt: row.created_at,
-        });
+        const localRow = await db.customCategories.get(row.id);
+        const remoteUpdated = Number(row.updated_at) || row.created_at;
+        if (!localRow || remoteUpdated > (localRow.updatedAt ?? localRow.createdAt)) {
+          if (row.deleted) {
+            await db.customCategories.delete(row.id);
+          } else {
+            await db.customCategories.put({
+              id: row.id,
+              label: row.label,
+              icon: row.icon,
+              color: row.color,
+              createdAt: row.created_at,
+              updatedAt: remoteUpdated,
+              syncedAt: remoteUpdated,
+            });
+          }
+        }
       }
     });
   }
@@ -143,26 +163,38 @@ interface RemotePaymentSourceRow {
   name: string;
   bank_name: string | null;
   created_at: number;
+  updated_at: number;
+  deleted: boolean;
 }
 
 async function syncPaymentSources(userId: string): Promise<string | undefined> {
   try {
-    const local = await db.paymentSources.filter((s) => !s.deleted).toArray();
-    if (local.length > 0) {
-      const rows: RemotePaymentSourceRow[] = local.map((s) => ({
+    // Push only dirty rows (including soft-deletes, so tombstones propagate).
+    const local = await db.paymentSources.toArray();
+    const dirty = local.filter((s) => !s.syncedAt || s.syncedAt < (s.updatedAt ?? s.createdAt));
+    if (dirty.length > 0) {
+      const rows: RemotePaymentSourceRow[] = dirty.map((s) => ({
         id: s.id,
         user_id: userId,
         type: s.type,
         name: s.name,
         bank_name: s.bankName ?? null,
         created_at: s.createdAt,
+        updated_at: s.updatedAt ?? s.createdAt,
+        deleted: s.deleted ?? false,
       }));
       const { error } = await supabase
         .from('payment_sources')
         .upsert(rows, { onConflict: 'id' });
       if (error) return error.message;
+      await db.transaction('rw', db.paymentSources, async () => {
+        for (const s of dirty) {
+          await db.paymentSources.update(s.id, { syncedAt: s.updatedAt ?? s.createdAt });
+        }
+      });
     }
 
+    // Pull remote → local with last-write-wins + tombstone handling.
     const { data, error: pullErr } = await supabase
       .from('payment_sources')
       .select('*')
@@ -171,13 +203,23 @@ async function syncPaymentSources(userId: string): Promise<string | undefined> {
     if (data && data.length > 0) {
       await db.transaction('rw', db.paymentSources, async () => {
         for (const row of data as RemotePaymentSourceRow[]) {
-          await db.paymentSources.put({
-            id: row.id,
-            type: row.type as 'bank' | 'credit_card',
-            name: row.name,
-            bankName: row.bank_name ?? undefined,
-            createdAt: row.created_at,
-          });
+          const localRow = await db.paymentSources.get(row.id);
+          const remoteUpdated = Number(row.updated_at) || row.created_at;
+          if (!localRow || remoteUpdated > (localRow.updatedAt ?? localRow.createdAt)) {
+            if (row.deleted) {
+              await db.paymentSources.delete(row.id);
+            } else {
+              await db.paymentSources.put({
+                id: row.id,
+                type: row.type as 'bank' | 'credit_card',
+                name: row.name,
+                bankName: row.bank_name ?? undefined,
+                createdAt: row.created_at,
+                updatedAt: remoteUpdated,
+                syncedAt: remoteUpdated,
+              });
+            }
+          }
         }
       });
     }

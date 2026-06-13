@@ -8,6 +8,8 @@ export interface PaymentSource {
   name: string;
   bankName?: string;
   createdAt: number;
+  updatedAt?: number;
+  syncedAt?: number;
   deleted?: boolean;
 }
 
@@ -51,4 +53,7 @@ export interface CustomCategory {
   icon: string;
   color: string;
   createdAt: number;
+  updatedAt?: number;
+  syncedAt?: number;
+  deleted?: boolean;
 }

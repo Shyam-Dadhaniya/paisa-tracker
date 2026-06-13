@@ -1,15 +1,7 @@
 import { create } from 'zustand';
 import { db } from '@/services/db';
-import { syncNow } from '@/services/syncEngine';
-import { useAuthStore } from './authStore';
+import { triggerSync } from './triggerSync';
 import type { Expense } from '@/types';
-
-function triggerSync() {
-  const user = useAuthStore.getState().user;
-  if (!user || !navigator.onLine) return;
-  // fire-and-forget; sync engine handles errors
-  void syncNow(user.id);
-}
 
 function uuid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
