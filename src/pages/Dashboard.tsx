@@ -8,6 +8,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useSync } from '@/hooks/useSync';
 import { formatINR, formatDate, todayISO, monthKey } from '@/utils/format';
+import { getThemeColors } from '@/constants/theme';
 import { useCategoryStore } from '@/store/categoryStore';
 import { useAuthStore } from '@/store/authStore';
 import ExpenseCard from '@/components/ExpenseCard';
@@ -15,11 +16,14 @@ import SyncIndicator from '@/components/SyncIndicator';
 import AnimatedNumber from '@/components/ui/AnimatedNumber';
 import EmptyState from '@/components/ui/EmptyState';
 import { ExpenseListSkeleton } from '@/components/ui/Skeleton';
-import type { DonutSlice } from '@/components/charts/SpendDonut';
-import type { TrendPoint } from '@/components/charts/TrendSparkline';
+import type { DonutSlice, ActiveInfo } from '@/components/charts/SpendDonut';
+import type { TrendPoint } from '@/components/charts/SpendTrend';
 
 const SpendDonut = lazy(() => import('@/components/charts/SpendDonut'));
-const TrendSparkline = lazy(() => import('@/components/charts/TrendSparkline'));
+const SpendTrend = lazy(() => import('@/components/charts/SpendTrend'));
+
+const MAX_DONUT_SLICES = 6;
+const OTHER_ID = '__other__';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -75,12 +79,40 @@ export default function Dashboard() {
   const visibleCats = showAllCats ? sortedCats : sortedCats.slice(0, 2);
   const hiddenCount = sortedCats.length - 2;
 
-  const donutData: DonutSlice[] = sortedCats.map((c) => ({
+  // Donut: top categories + a merged "Other" slice so the ring stays readable.
+  const [activeCat, setActiveCat] = useState<string | null>(null);
+  const selectCat = (id: string) => setActiveCat((prev) => (prev === id ? null : id));
+
+  const slices: DonutSlice[] = sortedCats.map((c) => ({
     id: c.id,
     label: c.label,
     value: stats.byCat[c.id] ?? 0,
     color: c.color,
   }));
+  if (slices.length > MAX_DONUT_SLICES) {
+    const rest = slices.splice(MAX_DONUT_SLICES);
+    slices.push({
+      id: OTHER_ID,
+      label: 'Other',
+      value: rest.reduce((s, x) => s + x.value, 0),
+      color: getThemeColors().muted,
+    });
+  }
+  const sliceIds = new Set(slices.map((s) => s.id));
+  // A small category folded into "Other" highlights the Other slice on the ring.
+  const donutActiveId = activeCat ? (sliceIds.has(activeCat) ? activeCat : OTHER_ID) : null;
+
+  const pctOf = (v: number) => (stats.monthTotal ? Math.round((v / stats.monthTotal) * 100) : 0);
+  let activeInfo: ActiveInfo | null = null;
+  if (activeCat === OTHER_ID) {
+    const other = slices.find((s) => s.id === OTHER_ID);
+    if (other) activeInfo = { label: 'Other', value: other.value, pct: pctOf(other.value) };
+  } else if (activeCat) {
+    const cat = sortedCats.find((c) => c.id === activeCat);
+    const value = stats.byCat[activeCat] ?? 0;
+    if (cat && value) activeInfo = { label: cat.label, value, pct: pctOf(value) };
+  }
+
   const trend = buildTrend(expenses);
   const hasTrend = trend.some((p) => p.value > 0);
 
@@ -111,9 +143,12 @@ export default function Dashboard() {
         <section className="bg-surface rounded-3xl p-5 border border-border/60 shadow-soft mb-4">
           <Suspense fallback={<div className="h-56 shimmer rounded-2xl" />}>
             <SpendDonut
-              data={donutData}
+              slices={slices}
               total={stats.monthTotal}
               caption={`spent in ${formatDate(today, 'MMMM')}`}
+              activeId={donutActiveId}
+              activeInfo={activeInfo}
+              onSelect={selectCat}
             />
           </Suspense>
         </section>
@@ -144,8 +179,8 @@ export default function Dashboard() {
           <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
             Last 14 days
           </p>
-          <Suspense fallback={<div className="h-16 shimmer rounded-xl" />}>
-            <TrendSparkline data={trend} />
+          <Suspense fallback={<div className="h-28 shimmer rounded-xl" />}>
+            <SpendTrend data={trend} />
           </Suspense>
         </section>
       )}
@@ -176,8 +211,15 @@ export default function Dashboard() {
             {visibleCats.map((c) => {
               const v = stats.byCat[c.id] ?? 0;
               const pct = stats.monthTotal ? (v / stats.monthTotal) * 100 : 0;
+              const isActive = activeCat === c.id;
               return (
-                <div key={c.id} className="bg-surface rounded-xl p-3 border border-border/60">
+                <button
+                  key={c.id}
+                  onClick={() => selectCat(c.id)}
+                  className={`block w-full text-left bg-surface rounded-xl p-3 border transition active:scale-[0.99] ${
+                    isActive ? 'border-primary ring-1 ring-primary/50' : 'border-border/60'
+                  }`}
+                >
                   <div className="flex justify-between text-sm mb-1.5">
                     <span>
                       {c.icon} {c.label}
@@ -193,7 +235,7 @@ export default function Dashboard() {
                       transition={{ duration: 0.6, ease: 'easeOut' }}
                     />
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

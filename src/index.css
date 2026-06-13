@@ -104,6 +104,18 @@
 }
 
 @layer utilities {
+  /* Suppress the focus outline recharts leaves on a clicked/focused chart
+     element (the stray box over a donut sector). */
+  .recharts-wrapper:focus,
+  .recharts-wrapper:focus-visible,
+  .recharts-surface:focus,
+  .recharts-surface:focus-visible,
+  .recharts-sector:focus,
+  .recharts-layer:focus,
+  .recharts-rectangle:focus {
+    outline: none;
+  }
+
   /* Shimmer for skeleton loaders. */
   .shimmer {
     background: linear-gradient(
