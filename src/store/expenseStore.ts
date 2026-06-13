@@ -24,8 +24,9 @@ function uuid(): string {
 
 interface ExpenseStore {
   addExpense: (
-    e: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'source'> & {
+    e: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'source' | 'type'> & {
       source?: Expense['source'];
+      type?: Expense['type'];
     },
   ) => Promise<Expense>;
   deleteExpense: (id: string) => Promise<void>;
@@ -41,6 +42,7 @@ export const useExpenseStore = create<ExpenseStore>(() => ({
       createdAt: now,
       updatedAt: now,
       source: input.source ?? 'manual',
+      type: input.type ?? 'expense',
       ...input,
     };
     await db.expenses.add(expense);
@@ -48,14 +50,8 @@ export const useExpenseStore = create<ExpenseStore>(() => ({
     return expense;
   },
   deleteExpense: async (id) => {
-    // Soft-delete so it syncs to cloud; sync engine removes locally after pull confirms it.
-    const user = useAuthStore.getState().user;
-    if (user) {
-      await db.expenses.update(id, { deleted: true, updatedAt: Date.now() });
-      triggerSync();
-    } else {
-      await db.expenses.delete(id);
-    }
+    await db.expenses.update(id, { deleted: true, updatedAt: Date.now() });
+    triggerSync();
   },
   updateExpense: async (id, patch) => {
     await db.expenses.update(id, { ...patch, updatedAt: Date.now() });

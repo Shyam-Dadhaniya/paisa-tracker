@@ -5,6 +5,7 @@ import type { Expense, Category, PaymentSource } from '@/types';
 import { formatDate } from '@/utils/format';
 import { getCategory } from '@/utils/categories';
 import { resolveSourceLabel } from '@/utils/paymentSources';
+import { PRIMARY_RGB } from '@/constants/theme';
 
 export interface PdfExportOptions {
   expenses: Expense[];
@@ -48,7 +49,7 @@ export function generatePDF({
   // — Color palette (light theme, print-friendly) —
   const white: [number, number, number] = [255, 255, 255];
   const offWhite: [number, number, number] = [248, 249, 253];
-  const indigo: [number, number, number] = [99, 102, 241];       // used for page header bar only
+  const indigo: [number, number, number] = PRIMARY_RGB;          // used for page header bar only
   const sectionColor: [number, number, number] = [90, 92, 180];  // softer indigo for section labels
   const indigoDark: [number, number, number] = [67, 56, 202];
   const darkText: [number, number, number] = [40, 42, 60];

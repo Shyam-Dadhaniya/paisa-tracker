@@ -1,4 +1,5 @@
 import type { CategoryId } from '@/types';
+import { categorizeFromSms } from '@/constants/smsPatterns';
 
 export interface ParsedSms {
   amount: number;
@@ -6,23 +7,6 @@ export interface ParsedSms {
   category: CategoryId;
   note: string;
   confidence: number;
-}
-
-const FOOD = /(zomato|swiggy|dominos|mcd|kfc|starbucks|cafe|restaurant|bigbasket|blinkit|zepto|instamart)/i;
-const TRANSPORT = /(uber|ola|rapido|metro|irctc|fuel|petrol|hp|iocl|bpcl|shell)/i;
-const SHOPPING = /(amazon|flipkart|myntra|ajio|nykaa|meesho|tatacliq|croma|reliance digital)/i;
-const BILLS = /(electricity|bescom|tata power|adani|airtel|jio|vodafone|vi |broadband|rent|recharge|netflix|hotstar|prime|spotify|gym)/i;
-const HEALTH = /(pharmacy|apollo|medplus|netmeds|hospital|clinic|1mg|pharmeasy)/i;
-const ENTERTAINMENT = /(bookmyshow|pvr|inox|playstation|steam|youtube premium|disney)/i;
-
-function categorize(text: string): CategoryId {
-  if (FOOD.test(text)) return 'food';
-  if (TRANSPORT.test(text)) return 'transport';
-  if (SHOPPING.test(text)) return 'shopping';
-  if (BILLS.test(text)) return 'bills';
-  if (HEALTH.test(text)) return 'health';
-  if (ENTERTAINMENT.test(text)) return 'entertainment';
-  return 'other';
 }
 
 export function parseSmsRegex(sms: string): ParsedSms | null {
@@ -53,7 +37,7 @@ export function parseSmsRegex(sms: string): ParsedSms | null {
   return {
     amount,
     title,
-    category: categorize(text),
+    category: categorizeFromSms(text),
     note: '',
     confidence: title === 'Unknown' ? 0.4 : 0.65,
   };

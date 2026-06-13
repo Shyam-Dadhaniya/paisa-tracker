@@ -32,6 +32,20 @@ class PaisaTrackDB extends Dexie {
         }
       });
     });
+    this.version(5).stores({
+      expenses: 'id, date, category, type, createdAt, updatedAt, deleted',
+      customCategories: 'id, createdAt',
+      paymentSources: 'id, type, createdAt',
+    }).upgrade(async (tx) => {
+      await tx.table('expenses').toCollection().modify((expense: Expense) => {
+        if (expense.category === '__income__') {
+          expense.type = 'income';
+          expense.category = 'other';
+        } else if (!expense.type) {
+          expense.type = 'expense';
+        }
+      });
+    });
   }
 }
 

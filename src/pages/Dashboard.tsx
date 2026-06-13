@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronUp } from 'lucide-react';
 import { useAllExpenses } from '@/hooks/useExpenses';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { formatINR, todayISO, monthKey } from '@/utils/format';
 import { useCategoryStore } from '@/store/categoryStore';
 import ExpenseCard from '@/components/ExpenseCard';
@@ -11,20 +12,7 @@ export default function Dashboard() {
   const expenses = useAllExpenses();
   const today = todayISO();
   const thisMonth = monthKey(today);
-
-  const stats = useMemo(() => {
-    let todayTotal = 0;
-    let monthTotal = 0;
-    const byCat: Record<string, number> = {};
-    for (const e of expenses) {
-      if (e.date === today && (e.type ?? 'expense') === 'expense') todayTotal += e.amount;
-      if (monthKey(e.date) === thisMonth && (e.type ?? 'expense') === 'expense') {
-        monthTotal += e.amount;
-        byCat[e.category] = (byCat[e.category] ?? 0) + e.amount;
-      }
-    }
-    return { todayTotal, monthTotal, byCat };
-  }, [expenses, today, thisMonth]);
+  const stats = useDashboardStats(expenses, today, thisMonth);
 
   const navigate = useNavigate();
   const categories = useCategoryStore((s) => s.categories);

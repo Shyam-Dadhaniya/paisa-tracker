@@ -65,7 +65,12 @@ export default function PaymentSources() {
                 <span className="text-xl">🏦</span>
                 <span className="flex-1 font-medium">{s.name}</span>
                 <button
-                  onClick={() => deletePaymentSource(s.id)}
+                  onClick={async () => {
+                    const result = await deletePaymentSource(s.id);
+                    if (result.count > 0) {
+                      alert(`"${s.name}" is used by ${result.count} expense${result.count !== 1 ? 's' : ''}. Remove those expenses first, or the link will remain.`);
+                    }
+                  }}
                   className="p-1.5 text-muted hover:text-danger transition active:scale-95"
                   aria-label={`Delete ${s.name}`}
                 >
@@ -147,7 +152,12 @@ export default function PaymentSources() {
                   )}
                 </div>
                 <button
-                  onClick={() => deletePaymentSource(s.id)}
+                  onClick={async () => {
+                    const result = await deletePaymentSource(s.id);
+                    if (result.count > 0) {
+                      alert(`"${s.name}" is used by ${result.count} expense${result.count !== 1 ? 's' : ''}. Remove those expenses first, or the link will remain.`);
+                    }
+                  }}
                   className="p-1.5 text-muted hover:text-danger transition active:scale-95"
                   aria-label={`Delete ${s.name}`}
                 >

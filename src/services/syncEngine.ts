@@ -100,7 +100,7 @@ function fromRow(r: RemoteRow): Expense {
     category: r.category as Expense['category'],
     date: r.date,
     time: r.time ?? undefined,
-    type: (r.type ?? 'expense') as Expense['type'],
+    type: r.type === 'income' ? 'income' : 'expense',
     note: r.note ?? undefined,
     source: r.source as Expense['source'],
     smsRaw: r.sms_raw ?? undefined,
@@ -186,14 +186,18 @@ async function syncPaymentSources(userId: string): Promise<string | undefined> {
   }
 }
 
-export async function syncNow(userId: string): Promise<SyncResult> {
-  if (!navigator.onLine) return { pushed: 0, pulled: 0, error: 'offline' };
+const SYNC_TIMEOUT_MS = 10_000;
 
+async function runSync(userId: string): Promise<SyncResult> {
   // 0) Sync custom categories and payment sources — run independently of expense sync
-  const catError = await syncCustomCategories(userId);
-  if (catError) console.warn('Custom category sync error:', catError);
-  const psError = await syncPaymentSources(userId);
-  if (psError) console.warn('Payment source sync error:', psError);
+  try {
+    const catError = await syncCustomCategories(userId);
+    if (catError) console.warn('Custom category sync error:', catError);
+  } catch (e) { console.warn('Category sync failed:', e); }
+  try {
+    const psError = await syncPaymentSources(userId);
+    if (psError) console.warn('Payment source sync error:', psError);
+  } catch (e) { console.warn('Payment source sync failed:', e); }
 
   // 1) Push local dirty rows (syncedAt missing or stale)
   const all = await db.expenses.toArray();
@@ -204,13 +208,11 @@ export async function syncNow(userId: string): Promise<SyncResult> {
     const { error } = await supabase.from('expenses').upsert(rows, { onConflict: 'id' });
     if (error) return { pushed: 0, pulled: 0, error: error.message };
     pushed = dirty.length;
-    const now = Date.now();
     await db.transaction('rw', db.expenses, async () => {
       for (const e of dirty) {
         await db.expenses.update(e.id, { syncedAt: e.updatedAt });
       }
     });
-    void now;
   }
 
   // 2) Pull remote changes since lastPulledAt
@@ -245,6 +247,17 @@ export async function syncNow(userId: string): Promise<SyncResult> {
   }
 
   return { pushed, pulled };
+}
+
+export async function syncNow(userId: string): Promise<SyncResult> {
+  if (!navigator.onLine) return { pushed: 0, pulled: 0, error: 'offline' };
+
+  return Promise.race([
+    runSync(userId),
+    new Promise<SyncResult>((resolve) =>
+      setTimeout(() => resolve({ pushed: 0, pulled: 0, error: 'Sync timed out' }), SYNC_TIMEOUT_MS),
+    ),
+  ]);
 }
 
 export function resetSyncMeta() {

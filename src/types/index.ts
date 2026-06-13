@@ -25,7 +25,7 @@ export interface Expense {
   category: CategoryId;
   date: string; // ISO date YYYY-MM-DD
   time?: string; // HH:MM — transaction time; defaults to time of entry creation
-  type?: 'income' | 'expense'; // undefined treated as 'expense' for backward compat
+  type: 'income' | 'expense';
   note?: string;
   source: 'manual' | 'sms' | 'recurring';
   smsRaw?: string;

@@ -17,7 +17,7 @@ interface PaymentSourceStore {
     name: string;
     bankName?: string;
   }) => Promise<string>;
-  deletePaymentSource: (id: string) => Promise<void>;
+  deletePaymentSource: (id: string) => Promise<{ blocked: boolean; count: number }>;
 }
 
 export const usePaymentSourceStore = create<PaymentSourceStore>((set) => ({
@@ -41,8 +41,15 @@ export const usePaymentSourceStore = create<PaymentSourceStore>((set) => ({
   },
 
   deletePaymentSource: async (id) => {
-    await db.paymentSources.delete(id);
+    const linked = await db.expenses
+      .filter((e) => !e.deleted && e.paymentSourceId === id)
+      .count();
+    if (linked > 0) {
+      return { blocked: false, count: linked };
+    }
+    await db.paymentSources.update(id, { deleted: true });
     set({ paymentSources: await reload() });
+    return { blocked: false, count: 0 };
   },
 }));
 

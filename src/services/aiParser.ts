@@ -1,9 +1,24 @@
 import type { ParsedSms } from './smsRegex';
 import { parseSmsRegex } from './smsRegex';
+import { SMS_CATEGORY_LIST } from '@/constants/smsPatterns';
 
 export type ParseResult =
   | { ok: true; data: ParsedSms; source: 'ai' | 'regex' }
   | { ok: false; error: string };
+
+function isValidParsedSms(v: unknown): v is ParsedSms {
+  if (!v || typeof v !== 'object') return false;
+  const obj = v as Record<string, unknown>;
+  return (
+    typeof obj.amount === 'number' &&
+    obj.amount > 0 &&
+    typeof obj.title === 'string' &&
+    obj.title.length > 0 &&
+    (SMS_CATEGORY_LIST as readonly string[]).includes(obj.category as string) &&
+    typeof obj.note === 'string' &&
+    typeof obj.confidence === 'number'
+  );
+}
 
 export async function parseSms(smsText: string): Promise<ParseResult> {
   try {
@@ -13,9 +28,14 @@ export async function parseSms(smsText: string): Promise<ParseResult> {
       body: JSON.stringify({ smsText }),
     });
     if (res.ok) {
-      const json = (await res.json()) as { result?: ParsedSms };
-      if (json.result && typeof json.result.amount === 'number') {
-        return { ok: true, data: json.result, source: 'ai' };
+      const json = (await res.json()) as { result?: unknown };
+      const raw = json.result;
+      if (raw && typeof raw === 'object') {
+        // AI returns merchant field; map to title
+        const mapped = { ...(raw as Record<string, unknown>), title: (raw as Record<string, unknown>).merchant ?? (raw as Record<string, unknown>).title };
+        if (isValidParsedSms(mapped)) {
+          return { ok: true, data: mapped as ParsedSms, source: 'ai' };
+        }
       }
     }
   } catch {

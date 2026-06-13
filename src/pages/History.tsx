@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { format, subMonths, addMonths, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, SlidersHorizontal, Download } from 'lucide-react';
 import { useAllExpenses } from '@/hooks/useExpenses';
+import { useFilteredExpenses } from '@/hooks/useFilteredExpenses';
 import { useCategoryStore } from '@/store/categoryStore';
 import { formatDate, formatINR, monthKey, todayISO } from '@/utils/format';
 import ExpenseCard from '@/components/ExpenseCard';
 import CategoryFilterSheet from '@/components/CategoryFilterSheet';
 import PdfExportSheet from '@/components/PdfExportSheet';
 import type { CategoryId, Expense, PaymentMode } from '@/types';
+
+const PAGE_SIZE = 50;
 
 export default function History() {
   const navigate = useNavigate();
@@ -19,31 +22,33 @@ export default function History() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => monthKey(todayISO()));
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   function prevMonth() {
     setSelectedMonth((m) => monthKey(format(subMonths(parseISO(m + '-01'), 1), 'yyyy-MM-dd')));
+    setVisibleCount(PAGE_SIZE);
   }
 
   function nextMonth() {
     setSelectedMonth((m) => monthKey(format(addMonths(parseISO(m + '-01'), 1), 'yyyy-MM-dd')));
+    setVisibleCount(PAGE_SIZE);
   }
 
   function toggleFilter(id: CategoryId) {
     setFilters((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
+    setVisibleCount(PAGE_SIZE);
   }
 
   function clearFilters() {
     setFilters([]);
+    setVisibleCount(PAGE_SIZE);
   }
 
-  const filtered = useMemo(
-    () =>
-      expenses
-        .filter((e) => monthKey(e.date) === selectedMonth)
-        .filter((e) => filters.length === 0 || filters.includes(e.category))
-        .filter((e) => paymentFilters.length === 0 || paymentFilters.includes(e.paymentMode as PaymentMode)),
-    [expenses, selectedMonth, filters, paymentFilters],
-  );
+  const filtered = useFilteredExpenses(expenses, {
+    month: selectedMonth,
+    categories: filters,
+    paymentModes: paymentFilters,
+  });
 
   const summary = useMemo(() => {
     const income = filtered
@@ -55,15 +60,18 @@ export default function History() {
     return { income, expense, total: income - expense };
   }, [filtered]);
 
+  const paged = filtered.slice(0, visibleCount);
+  const hasMore = filtered.length > visibleCount;
+
   const grouped = useMemo(() => {
     const map = new Map<string, Expense[]>();
-    for (const e of filtered) {
+    for (const e of paged) {
       const arr = map.get(e.date) ?? [];
       arr.push(e);
       map.set(e.date, arr);
     }
     return Array.from(map.entries());
-  }, [filtered]);
+  }, [paged]);
 
   return (
     <main className="safe-top safe-bottom max-w-md mx-auto px-4">
@@ -156,6 +164,14 @@ export default function History() {
               </section>
             );
           })}
+          {hasMore && (
+            <button
+              onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+              className="w-full py-3 text-sm text-primary font-medium text-center active:opacity-70 transition"
+            >
+              Load more ({filtered.length - visibleCount} remaining)
+            </button>
+          )}
         </div>
       )}
 
