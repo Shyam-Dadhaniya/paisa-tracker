@@ -130,10 +130,10 @@ export default function Dashboard() {
         />
       </div>
 
-      <header className="mb-6 flex items-start justify-between">
-        <div>
+      <header className="mb-6 flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-muted text-sm">{greeting()} 👋</p>
-          <h1 className="text-2xl font-bold capitalize">{name ?? 'PaisaTrack'}</h1>
+          <h1 className="text-2xl font-bold capitalize truncate">{name ?? 'PaisaTrack'}</h1>
         </div>
         <SyncIndicator />
       </header>
