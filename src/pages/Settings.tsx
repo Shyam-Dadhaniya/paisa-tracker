@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { Download, Trash2, Info, LogIn, LogOut, RefreshCw, Tag, ChevronRight, DatabaseBackup, FileDown, Wallet, Sun, Moon, Monitor } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, Trash2, Info, LogIn, LogOut, RefreshCw, Tag, ChevronRight, DatabaseBackup, FileDown, Wallet, Sun, Moon, Monitor, Pencil, UserRound } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { useExpenseStore } from '@/store/expenseStore';
 import { useThemeStore, type ThemeMode } from '@/store/themeStore';
+import { useProfileStore } from '@/store/profileStore';
 import { useAuthStore } from '@/store/authStore';
 import { useCategoryStore } from '@/store/categoryStore';
 import { useSync } from '@/hooks/useSync';
@@ -61,6 +63,11 @@ export default function Settings() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold">Settings</h1>
       </header>
+
+      <section className="mb-5">
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-1">Profile</h2>
+        <ProfileSection />
+      </section>
 
       <section className="mb-5">
         <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-1">Appearance</h2>
@@ -173,6 +180,169 @@ export default function Settings() {
 
       <PdfExportSheet open={pdfOpen} onClose={() => setPdfOpen(false)} />
     </main>
+  );
+}
+
+function ProfileSection() {
+  const user = useAuthStore((s) => s.user);
+  const updateDisplayName = useAuthStore((s) => s.updateDisplayName);
+  const localName = useProfileStore((s) => s.localName);
+  const setLocalName = useProfileStore((s) => s.setLocalName);
+
+  const signedIn = !!user;
+  const current = signedIn
+    ? ((user?.user_metadata?.display_name as string | undefined)?.trim() ?? '')
+    : localName;
+
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(current);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
+
+  // Re-seed when the underlying name changes (e.g. session loads in) and we're
+  // not mid-edit.
+  useEffect(() => {
+    if (!editing) setValue(current);
+  }, [current, editing]);
+
+  const initialSource = current || (signedIn ? user?.email ?? '' : '');
+  const initial = initialSource.trim() ? initialSource.trim()[0].toUpperCase() : null;
+  const dirty = value.trim() !== current.trim();
+
+  const openEditor = () => {
+    setValue(current);
+    setError(null);
+    setEditing(true);
+  };
+
+  const cancel = () => {
+    setValue(current);
+    setError(null);
+    setEditing(false);
+  };
+
+  const flashSaved = () => {
+    setStatus('saved');
+    setEditing(false);
+    setTimeout(() => setStatus('idle'), 1500);
+  };
+
+  const save = async () => {
+    if (status === 'saving') return;
+    if (!dirty) {
+      setEditing(false);
+      return;
+    }
+    if (signedIn) {
+      setStatus('saving');
+      setError(null);
+      const res = await updateDisplayName(value);
+      if (res.error) {
+        setStatus('error');
+        setError(res.error);
+        return;
+      }
+      flashSaved();
+    } else {
+      setLocalName(value);
+      flashSaved();
+    }
+  };
+
+  const avatar = (
+    <div className="w-12 h-12 rounded-full bg-brand-gradient text-white font-bold text-lg grid place-items-center shrink-0 shadow-soft">
+      {initial ?? <UserRound size={22} />}
+    </div>
+  );
+
+  return (
+    <div className="bg-surface rounded-2xl border border-border/60 p-4 overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
+        {editing ? (
+          <motion.div
+            key="edit"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center gap-3">
+              {avatar}
+              <input
+                autoFocus
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') save();
+                  if (e.key === 'Escape') cancel();
+                }}
+                maxLength={40}
+                placeholder="Your name"
+                className="flex-1 min-w-0 bg-surface2 border border-border rounded-xl px-4 py-3 focus:outline-none focus:border-primary"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-3">
+              <p className="text-xs min-w-0 truncate">
+                {status === 'error' ? (
+                  <span className="text-danger">{error}</span>
+                ) : (
+                  <span className="text-muted">
+                    {signedIn ? 'Synced to your account' : 'Sign in to sync across devices'}
+                  </span>
+                )}
+              </p>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={cancel}
+                  className="px-3 py-1.5 rounded-lg text-sm text-muted active:scale-95 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={save}
+                  disabled={status === 'saving'}
+                  className="px-4 py-1.5 rounded-lg bg-brand-gradient text-white text-sm font-semibold shadow-soft active:scale-95 transition disabled:opacity-40"
+                >
+                  {status === 'saving' ? '…' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-3"
+          >
+            {avatar}
+            <div className="flex-1 min-w-0">
+              <p className={`text-lg font-semibold truncate ${current ? '' : 'text-muted'}`}>
+                {current || 'Add your name'}
+              </p>
+              <p className="text-xs truncate">
+                {status === 'saved' ? (
+                  <span className="text-success">Saved ✓</span>
+                ) : (
+                  <span className="text-muted">
+                    {signedIn ? user?.email : 'Stored on this device'}
+                  </span>
+                )}
+              </p>
+            </div>
+            <button
+              onClick={openEditor}
+              aria-label="Edit name"
+              className="p-2 rounded-lg text-muted hover:text-primary active:scale-90 transition shrink-0"
+            >
+              <Pencil size={18} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

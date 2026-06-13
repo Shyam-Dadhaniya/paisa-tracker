@@ -11,6 +11,7 @@ import { formatINR, formatDate, todayISO, monthKey } from '@/utils/format';
 import { getThemeColors } from '@/constants/theme';
 import { useCategoryStore } from '@/store/categoryStore';
 import { useAuthStore } from '@/store/authStore';
+import { useProfileStore } from '@/store/profileStore';
 import ExpenseCard from '@/components/ExpenseCard';
 import SyncIndicator from '@/components/SyncIndicator';
 import AnimatedNumber from '@/components/ui/AnimatedNumber';
@@ -69,7 +70,10 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const categories = useCategoryStore((s) => s.categories);
   const user = useAuthStore((s) => s.user);
-  const name = user?.email ? user.email.split('@')[0] : null;
+  const localName = useProfileStore((s) => s.localName);
+  const syncedName = (user?.user_metadata?.display_name as string | undefined)?.trim() || null;
+  const emailName = user?.email ? user.email.split('@')[0] : null;
+  const name = syncedName || localName || emailName || null;
 
   const recent = expenses.slice(0, 5);
   const sortedCats = categories

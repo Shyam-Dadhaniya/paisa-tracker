@@ -10,6 +10,9 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  /** Persists the display name on the Supabase account (user_metadata) so it
+   *  follows the user across devices. */
+  updateDisplayName: (name: string) => Promise<{ error?: string }>;
 }
 
 let initialized = false;
@@ -45,5 +48,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     await supabase.auth.signOut();
     set({ session: null, user: null });
+  },
+
+  updateDisplayName: async (name) => {
+    const { data, error } = await supabase.auth.updateUser({ data: { display_name: name.trim() } });
+    if (error) return { error: error.message };
+    set({ user: data.user });
+    return {};
   },
 }));

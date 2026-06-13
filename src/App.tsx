@@ -14,18 +14,21 @@ import { useAuthStore } from './store/authStore';
 import { useCategoryStore } from './store/categoryStore';
 import { usePaymentSourceStore } from './store/paymentSourceStore';
 import { useThemeStore } from './store/themeStore';
+import { useProfileStore } from './store/profileStore';
 
 export default function App() {
   const initAuth = useAuthStore((s) => s.init);
   const loadCategories = useCategoryStore((s) => s.loadCustomCategories);
   const loadPaymentSources = usePaymentSourceStore((s) => s.loadPaymentSources);
   const initTheme = useThemeStore((s) => s.init);
+  const initProfile = useProfileStore((s) => s.init);
   useEffect(() => {
     initTheme();
+    initProfile();
     initAuth();
     loadCategories();
     loadPaymentSources();
-  }, [initTheme, initAuth, loadCategories, loadPaymentSources]);
+  }, [initTheme, initProfile, initAuth, loadCategories, loadPaymentSources]);
 
   return (
     <div className="min-h-full bg-bg text-text">
