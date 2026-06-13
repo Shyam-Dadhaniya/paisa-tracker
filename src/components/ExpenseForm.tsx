@@ -5,7 +5,8 @@ import { ChevronDown } from 'lucide-react';
 import { findCategory } from '@/store/categoryStore';
 import { usePaymentSourceStore } from '@/store/paymentSourceStore';
 import { todayISO, currentTimeHHMM } from '@/utils/format';
-import ItemsTable from './ItemsTable';
+import ItemsTrigger from './ItemsTrigger';
+import ItemsSheet from './ItemsSheet';
 import CategorySheet from './CategorySheet';
 import DateTimePicker from './DateTimePicker';
 import PaymentModeSelector from './PaymentModeSelector';
@@ -34,6 +35,7 @@ export default function ExpenseForm({ initialData, onSubmit, submitLabel, childr
   const [selectedMode, setSelectedMode] = useState<PaymentMode | null>(initialData?.paymentMode ?? null);
   const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>(initialData?.paymentSourceId);
   const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
+  const [itemsSheetOpen, setItemsSheetOpen] = useState(false);
 
   const paymentSources = usePaymentSourceStore((s) => s.paymentSources);
 
@@ -206,8 +208,18 @@ export default function ExpenseForm({ initialData, onSubmit, submitLabel, childr
           />
         )}
 
-        {/* Items table — only for expenses */}
-        {!isIncome && <ItemsTable items={items} onChange={setItems} />}
+        {/* Items — only for expenses */}
+        {!isIncome && (
+          <>
+            <ItemsTrigger items={items} onOpen={() => setItemsSheetOpen(true)} />
+            <ItemsSheet
+              open={itemsSheetOpen}
+              onClose={() => setItemsSheetOpen(false)}
+              items={items}
+              onChange={setItems}
+            />
+          </>
+        )}
 
         {/* Date / Time */}
         <DateTimePicker
