@@ -30,8 +30,8 @@ export default function BaseSheet({ open, onClose, side = 'bottom', children, cl
 
   const variants = side === 'right' ? RIGHT_VARIANTS : BOTTOM_VARIANTS;
   const baseClass = side === 'right'
-    ? 'fixed top-0 right-0 bottom-0 w-72 z-50 bg-surface rounded-l-2xl flex flex-col shadow-2xl'
-    : 'fixed left-0 right-0 bottom-0 z-50 bg-surface rounded-t-2xl flex flex-col shadow-2xl max-w-md mx-auto';
+    ? 'fixed top-0 right-0 bottom-0 w-72 z-50 glass rounded-l-2xl flex flex-col shadow-elevated'
+    : 'fixed left-0 right-0 bottom-0 z-50 glass rounded-t-3xl flex flex-col shadow-elevated max-w-md mx-auto';
 
   return createPortal(
     <AnimatePresence>
@@ -39,7 +39,7 @@ export default function BaseSheet({ open, onClose, side = 'bottom', children, cl
         <>
           <motion.div
             key="backdrop"
-            className="fixed inset-0 bg-black/60 z-40"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -52,8 +52,13 @@ export default function BaseSheet({ open, onClose, side = 'bottom', children, cl
             initial={variants.initial}
             animate={variants.animate}
             exit={variants.exit}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            transition={{ type: 'spring', damping: 32, stiffness: 360 }}
           >
+            {side === 'bottom' && (
+              <div className="flex justify-center pt-2.5 pb-1 shrink-0">
+                <span className="w-9 h-1.5 rounded-full bg-muted/40" />
+              </div>
+            )}
             {children}
           </motion.div>
         </>

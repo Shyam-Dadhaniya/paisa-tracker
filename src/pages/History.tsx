@@ -2,14 +2,18 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, subMonths, addMonths, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, SlidersHorizontal, Download } from 'lucide-react';
-import { useAllExpenses } from '@/hooks/useExpenses';
+import { useAllExpensesState } from '@/hooks/useExpenses';
 import { useFilteredExpenses } from '@/hooks/useFilteredExpenses';
 import { useCategoryStore } from '@/store/categoryStore';
+import { useExpenseStore } from '@/store/expenseStore';
 import { formatDate, formatINR, monthKey, todayISO } from '@/utils/format';
 import { toggleInArray } from '@/utils/toggleInArray';
 import ExpenseCard from '@/components/ExpenseCard';
+import SwipeableRow from '@/components/SwipeableRow';
 import CategoryFilterSheet from '@/components/CategoryFilterSheet';
 import PdfExportSheet from '@/components/PdfExportSheet';
+import EmptyState from '@/components/ui/EmptyState';
+import { ExpenseListSkeleton } from '@/components/ui/Skeleton';
 import type { CategoryId, Expense, PaymentMode } from '@/types';
 
 const PAGE_SIZE = 50;
@@ -17,7 +21,8 @@ const PAGE_SIZE = 50;
 export default function History() {
   const navigate = useNavigate();
   useCategoryStore((s) => s.categories);
-  const expenses = useAllExpenses();
+  const { expenses, loading } = useAllExpensesState();
+  const deleteExpense = useExpenseStore((s) => s.deleteExpense);
   const [filters, setFilters] = useState<CategoryId[]>([]);
   const [paymentFilters, setPaymentFilters] = useState<PaymentMode[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -124,11 +129,11 @@ export default function History() {
         <div className="grid grid-cols-3 text-center bg-surface rounded-xl border border-border py-2">
           <div>
             <p className="text-xs text-muted">Income</p>
-            <p className="text-sm font-semibold text-green-400">{formatINR(summary.income)}</p>
+            <p className="text-sm font-semibold text-success">{formatINR(summary.income)}</p>
           </div>
           <div className="border-x border-border">
             <p className="text-xs text-muted">Exp.</p>
-            <p className="text-sm font-semibold text-red-400">{formatINR(summary.expense)}</p>
+            <p className="text-sm font-semibold text-danger">{formatINR(summary.expense)}</p>
           </div>
           <div>
             <p className="text-xs text-muted">Total</p>
@@ -137,8 +142,14 @@ export default function History() {
         </div>
       </header>
 
-      {grouped.length === 0 ? (
-        <p className="text-center text-muted mt-12">No expenses to show</p>
+      {loading ? (
+        <ExpenseListSkeleton count={6} />
+      ) : grouped.length === 0 ? (
+        <EmptyState
+          emoji="🔍"
+          title="Nothing here"
+          subtitle="No entries match this month or your filters. Try another month or clear filters."
+        />
       ) : (
         <div className="space-y-5">
           {grouped.map(([date, items]) => {
@@ -154,12 +165,13 @@ export default function History() {
                 </div>
                 <div className="space-y-2">
                   {items.map((e) => (
-                    <ExpenseCard
-                      key={e.id}
-                      expense={e}
-                      onClick={() => navigate(`/edit/${e.id}`)}
-                      showDate={false}
-                    />
+                    <SwipeableRow key={e.id} onDelete={() => deleteExpense(e.id)}>
+                      <ExpenseCard
+                        expense={e}
+                        onClick={() => navigate(`/edit/${e.id}`)}
+                        showDate={false}
+                      />
+                    </SwipeableRow>
                   ))}
                 </div>
               </section>

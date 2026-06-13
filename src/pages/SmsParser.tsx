@@ -105,7 +105,7 @@ export default function SmsParser() {
       <button
         onClick={() => runParse(sms)}
         disabled={!sms.trim() || loading}
-        className="w-full flex items-center justify-center gap-2 bg-primary text-white font-semibold py-3 rounded-2xl mt-3 shadow-lg shadow-primary/30 active:scale-[0.98] transition disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 bg-brand-gradient text-white font-semibold py-3 rounded-2xl mt-3 shadow-soft active:scale-[0.98] transition disabled:opacity-50"
       >
         <Sparkles size={18} />
         {loading ? 'Parsing…' : 'Parse with AI'}
@@ -177,7 +177,7 @@ export default function SmsParser() {
 
           <button
             onClick={handleSave}
-            className="w-full bg-primary text-white font-semibold py-3 rounded-xl shadow-lg shadow-primary/30 active:scale-[0.98]"
+            className="w-full bg-brand-gradient text-white font-semibold py-3 rounded-xl shadow-soft active:scale-[0.98]"
           >
             Save expense
           </button>

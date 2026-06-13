@@ -53,8 +53,8 @@ export default function Login() {
       </header>
 
       <div className="flex flex-col items-center text-center mb-6">
-        <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center mb-3">
-          <CloudUpload size={28} className="text-primary" />
+        <div className="w-16 h-16 rounded-3xl bg-brand-gradient flex items-center justify-center mb-3 shadow-soft">
+          <CloudUpload size={30} className="text-white" />
         </div>
         <p className="text-sm text-muted leading-relaxed max-w-xs">
           Sign in to sync expenses across your iPhone, laptop, and any device. Protects against iOS data wipe.
@@ -92,7 +92,7 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-primary text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-primary/30 active:scale-[0.98] transition disabled:opacity-50"
+          className="w-full bg-brand-gradient text-white font-semibold py-3.5 rounded-2xl shadow-soft active:scale-[0.98] transition disabled:opacity-50"
         >
           {loading ? '…' : mode === 'signin' ? 'Sign in' : 'Create account'}
         </button>

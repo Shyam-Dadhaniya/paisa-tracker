@@ -13,16 +13,19 @@ import BottomNav from './components/BottomNav';
 import { useAuthStore } from './store/authStore';
 import { useCategoryStore } from './store/categoryStore';
 import { usePaymentSourceStore } from './store/paymentSourceStore';
+import { useThemeStore } from './store/themeStore';
 
 export default function App() {
   const initAuth = useAuthStore((s) => s.init);
   const loadCategories = useCategoryStore((s) => s.loadCustomCategories);
   const loadPaymentSources = usePaymentSourceStore((s) => s.loadPaymentSources);
+  const initTheme = useThemeStore((s) => s.init);
   useEffect(() => {
+    initTheme();
     initAuth();
     loadCategories();
     loadPaymentSources();
-  }, [initAuth, loadCategories, loadPaymentSources]);
+  }, [initTheme, initAuth, loadCategories, loadPaymentSources]);
 
   return (
     <div className="min-h-full bg-bg text-text">

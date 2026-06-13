@@ -31,12 +31,14 @@ export default function ExpenseCard({ expense, onClick, showDate = true }: Props
   return (
     <div
       onClick={onClick}
-      className={`flex items-start gap-3 bg-surface rounded-2xl p-3.5 border border-border/60 transition active:scale-[0.98] ${onClick ? 'cursor-pointer' : ''}`}
+      className={`flex items-start gap-3 bg-surface rounded-2xl p-3.5 border border-border/60 shadow-soft transition active:scale-[0.98] ${onClick ? 'cursor-pointer' : ''}`}
     >
       {/* Category icon */}
       <div
-        className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 mt-0.5"
-        style={{ backgroundColor: cat.color + '33' }}
+        className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 mt-0.5 ring-1 ring-inset ring-white/5"
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${cat.color}3D, ${cat.color}1A)`,
+        }}
       >
         {cat.icon}
       </div>

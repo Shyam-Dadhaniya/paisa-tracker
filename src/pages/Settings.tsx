@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Download, Trash2, Info, LogIn, LogOut, RefreshCw, Tag, ChevronRight, DatabaseBackup, FileDown, Wallet } from 'lucide-react';
+import { Download, Trash2, Info, LogIn, LogOut, RefreshCw, Tag, ChevronRight, DatabaseBackup, FileDown, Wallet, Sun, Moon, Monitor } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { useExpenseStore } from '@/store/expenseStore';
+import { useThemeStore, type ThemeMode } from '@/store/themeStore';
 import { useAuthStore } from '@/store/authStore';
 import { useCategoryStore } from '@/store/categoryStore';
 import { useSync } from '@/hooks/useSync';
@@ -26,6 +27,8 @@ export default function Settings() {
   const cardCount = paymentSources.filter((s) => s.type === 'credit_card').length;
   const [resetting, setResetting] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const themeMode = useThemeStore((s) => s.mode);
+  const setThemeMode = useThemeStore((s) => s.setMode);
 
   const handleExport = () => {
     if (expenses.length === 0) {
@@ -58,6 +61,11 @@ export default function Settings() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold">Settings</h1>
       </header>
+
+      <section className="mb-5">
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-1">Appearance</h2>
+        <ThemeToggle mode={themeMode} onChange={setThemeMode} />
+      </section>
 
       <section className="mb-5">
         <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-1">Account</h2>
@@ -165,6 +173,34 @@ export default function Settings() {
 
       <PdfExportSheet open={pdfOpen} onClose={() => setPdfOpen(false)} />
     </main>
+  );
+}
+
+const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
+  { mode: 'light', label: 'Light', icon: Sun },
+  { mode: 'dark', label: 'Dark', icon: Moon },
+  { mode: 'system', label: 'System', icon: Monitor },
+];
+
+function ThemeToggle({ mode, onChange }: { mode: ThemeMode; onChange: (m: ThemeMode) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-1.5 bg-surface rounded-2xl p-1.5 border border-border/60">
+      {THEME_OPTIONS.map(({ mode: m, label, icon: Icon }) => {
+        const active = mode === m;
+        return (
+          <button
+            key={m}
+            onClick={() => onChange(m)}
+            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-medium transition active:scale-[0.97] ${
+              active ? 'bg-brand-gradient text-white shadow-soft' : 'text-muted'
+            }`}
+          >
+            <Icon size={20} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { findCategory } from '@/store/categoryStore';
 import { usePaymentSourceStore } from '@/store/paymentSourceStore';
 import { todayISO, currentTimeHHMM } from '@/utils/format';
+import { useHaptics } from '@/hooks/useHaptics';
 import ItemsTrigger from './ItemsTrigger';
 import ItemsSheet from './ItemsSheet';
 import CategorySheet from './CategorySheet';
@@ -38,6 +39,7 @@ export default function ExpenseForm({ initialData, onSubmit, submitLabel, childr
   const [itemsSheetOpen, setItemsSheetOpen] = useState(false);
 
   const paymentSources = usePaymentSourceStore((s) => s.paymentSources);
+  const haptic = useHaptics();
 
   const { register, handleSubmit, watch, setValue, reset, formState } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -99,6 +101,7 @@ export default function ExpenseForm({ initialData, onSubmit, submitLabel, childr
 
   const handleFormSubmit = async (data: ExpenseFormValues) => {
     setSubmitting(true);
+    haptic('success');
     try {
       await onSubmit(data, { entryType, items, selectedMode, selectedSourceId });
     } finally {
@@ -120,50 +123,53 @@ export default function ExpenseForm({ initialData, onSubmit, submitLabel, childr
     <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col flex-1 overflow-hidden">
       <div className="flex-1 overflow-y-auto px-4 space-y-5 pb-4">
         {/* Expense / Income toggle */}
-        <div className="flex rounded-xl overflow-hidden border border-border">
+        <div className="flex gap-1.5 rounded-2xl p-1.5 bg-surface border border-border">
           <button
             type="button"
-            onClick={() => setEntryType('income')}
-            className={`flex-1 py-2 text-sm font-medium transition ${
-              isIncome ? 'bg-green-500 text-white' : 'bg-surface text-muted'
+            onClick={() => { setEntryType('income'); haptic('light'); }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition active:scale-[0.97] ${
+              isIncome ? 'bg-success text-white shadow-soft' : 'text-muted'
             }`}
           >
             Income
           </button>
           <button
             type="button"
-            onClick={() => setEntryType('expense')}
-            className={`flex-1 py-2 text-sm font-medium transition ${
-              !isIncome ? 'bg-primary text-white' : 'bg-surface text-muted'
+            onClick={() => { setEntryType('expense'); haptic('light'); }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition active:scale-[0.97] ${
+              !isIncome ? 'bg-brand-gradient text-white shadow-soft' : 'text-muted'
             }`}
           >
             Expense
           </button>
         </div>
 
-        {/* Amount */}
-        <div>
-          <label className="text-xs text-muted uppercase tracking-wider mb-2 block">
-            Amount (₹)
+        {/* Amount — hero */}
+        <div className="text-center pt-2">
+          <label className="text-xs text-muted uppercase tracking-wider mb-1 block">
+            Amount
             {hasItems && !isIncome && (
               <span className="ml-2 text-[10px] text-primary normal-case tracking-normal font-normal">
                 auto from items
               </span>
             )}
           </label>
-          <input
-            {...register('amount', { valueAsNumber: true })}
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            autoFocus={!hasItems}
-            placeholder="0"
-            readOnly={hasItems && !isIncome}
-            onFocus={(e) => e.target.select()}
-            className={`w-full bg-surface border border-border rounded-2xl px-4 py-4 text-3xl font-bold tabular-nums focus:outline-none focus:border-primary transition ${
-              hasItems && !isIncome ? 'opacity-60 cursor-default' : ''
-            }`}
-          />
+          <div className="flex items-center justify-center gap-1">
+            <span className="text-3xl font-bold text-muted">₹</span>
+            <input
+              {...register('amount', { valueAsNumber: true })}
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              autoFocus={!hasItems}
+              placeholder="0"
+              readOnly={hasItems && !isIncome}
+              onFocus={(e) => e.target.select()}
+              className={`w-full max-w-[16rem] bg-transparent text-center text-5xl font-bold tabular-nums caret-primary placeholder:text-muted/40 focus:outline-none transition ${
+                isIncome ? 'text-success' : 'text-gradient'
+              } ${hasItems && !isIncome ? 'opacity-70 cursor-default' : ''}`}
+            />
+          </div>
         </div>
 
         {/* Title */}
@@ -245,8 +251,8 @@ export default function ExpenseForm({ initialData, onSubmit, submitLabel, childr
         <button
           type="submit"
           disabled={submitting || !formState.isValid}
-          className={`w-full text-white font-semibold py-4 rounded-2xl shadow-lg active:scale-[0.98] transition disabled:opacity-50 ${
-            isIncome ? 'bg-green-500 shadow-green-500/30' : 'bg-primary shadow-primary/30'
+          className={`w-full text-white font-semibold py-4 rounded-2xl shadow-soft active:scale-[0.98] transition disabled:opacity-50 ${
+            isIncome ? 'bg-success' : 'bg-brand-gradient'
           }`}
         >
           {defaultSubmitLabel}
