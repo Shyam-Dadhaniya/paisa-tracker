@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, X } from 'lucide-react';
 import { usePaymentSourceStore } from '@/store/paymentSourceStore';
-import { POPULAR_BANKS } from '@/utils/paymentSources';
+import PaymentSourceForm from '@/components/PaymentSourceForm';
+import type { PaymentSource } from '@/types';
+
+type FormType = 'bank' | 'credit_card';
 
 export default function PaymentSources() {
   const navigate = useNavigate();
@@ -11,32 +14,21 @@ export default function PaymentSources() {
   const banks = paymentSources.filter((s) => s.type === 'bank');
   const cards = paymentSources.filter((s) => s.type === 'credit_card');
 
-  const [showBankForm, setShowBankForm] = useState(false);
-  const [showCardForm, setShowCardForm] = useState(false);
-  const [bankName, setBankName] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [cardBank, setCardBank] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [openForm, setOpenForm] = useState<FormType | null>(null);
 
-  const handleAddBank = async () => {
-    const name = bankName.trim();
-    if (!name) return;
-    setSaving(true);
-    await addPaymentSource({ type: 'bank', name });
-    setBankName('');
-    setShowBankForm(false);
-    setSaving(false);
+  const handleDelete = async (s: PaymentSource) => {
+    const result = await deletePaymentSource(s.id);
+    if (result.linkedCount > 0) {
+      alert(
+        `"${s.name}" is used by ${result.linkedCount} expense${result.linkedCount !== 1 ? 's' : ''}. ` +
+          'Remove those expenses first, or the link will remain.',
+      );
+    }
   };
 
-  const handleAddCard = async () => {
-    const name = cardName.trim();
-    if (!name) return;
-    setSaving(true);
-    await addPaymentSource({ type: 'credit_card', name, bankName: cardBank.trim() || undefined });
-    setCardName('');
-    setCardBank('');
-    setShowCardForm(false);
-    setSaving(false);
+  const handleSave = (type: FormType) => async (data: { name: string; bankName?: string }) => {
+    await addPaymentSource({ type, ...data });
+    setOpenForm(null);
   };
 
   return (
@@ -65,12 +57,7 @@ export default function PaymentSources() {
                 <span className="text-xl">🏦</span>
                 <span className="flex-1 font-medium">{s.name}</span>
                 <button
-                  onClick={async () => {
-                    const result = await deletePaymentSource(s.id);
-                    if (result.count > 0) {
-                      alert(`"${s.name}" is used by ${result.count} expense${result.count !== 1 ? 's' : ''}. Remove those expenses first, or the link will remain.`);
-                    }
-                  }}
+                  onClick={() => handleDelete(s)}
                   className="p-1.5 text-muted hover:text-danger transition active:scale-95"
                   aria-label={`Delete ${s.name}`}
                 >
@@ -81,51 +68,11 @@ export default function PaymentSources() {
           </div>
         )}
 
-        {showBankForm ? (
-          <div className="bg-surface rounded-2xl border border-border/60 p-4 space-y-3">
-            <input
-              value={bankName}
-              onChange={(e) => setBankName(e.target.value)}
-              placeholder="Bank name (e.g. HDFC)"
-              autoFocus
-              className="w-full bg-surface2 border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:border-primary text-sm"
-            />
-            {/* Popular bank chips */}
-            <div className="flex flex-wrap gap-2">
-              {POPULAR_BANKS.map((b) => (
-                <button
-                  key={b}
-                  type="button"
-                  onClick={() => setBankName(b)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition active:scale-95 ${
-                    bankName === b
-                      ? 'bg-primary/20 border-primary text-primary'
-                      : 'bg-surface2 border-border text-muted'
-                  }`}
-                >
-                  {b}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setShowBankForm(false); setBankName(''); }}
-                className="flex-1 py-2.5 rounded-xl border border-border text-muted text-sm active:scale-95 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddBank}
-                disabled={saving || !bankName.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-50 active:scale-95 transition"
-              >
-                {saving ? 'Adding…' : 'Add Bank'}
-              </button>
-            </div>
-          </div>
+        {openForm === 'bank' ? (
+          <PaymentSourceForm type="bank" onSave={handleSave('bank')} onCancel={() => setOpenForm(null)} />
         ) : (
           <button
-            onClick={() => setShowBankForm(true)}
+            onClick={() => setOpenForm('bank')}
             className="w-full flex items-center gap-2 bg-surface rounded-2xl px-4 py-3.5 border border-border/60 text-primary active:scale-[0.99] transition"
           >
             <Plus size={18} />
@@ -147,17 +94,10 @@ export default function PaymentSources() {
                 <span className="text-xl">💳</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium">{s.name}</p>
-                  {s.bankName && (
-                    <p className="text-xs text-muted">{s.bankName}</p>
-                  )}
+                  {s.bankName && <p className="text-xs text-muted">{s.bankName}</p>}
                 </div>
                 <button
-                  onClick={async () => {
-                    const result = await deletePaymentSource(s.id);
-                    if (result.count > 0) {
-                      alert(`"${s.name}" is used by ${result.count} expense${result.count !== 1 ? 's' : ''}. Remove those expenses first, or the link will remain.`);
-                    }
-                  }}
+                  onClick={() => handleDelete(s)}
                   className="p-1.5 text-muted hover:text-danger transition active:scale-95"
                   aria-label={`Delete ${s.name}`}
                 >
@@ -168,59 +108,15 @@ export default function PaymentSources() {
           </div>
         )}
 
-        {showCardForm ? (
-          <div className="bg-surface rounded-2xl border border-border/60 p-4 space-y-3">
-            <input
-              value={cardName}
-              onChange={(e) => setCardName(e.target.value)}
-              placeholder="Card name (e.g. HDFC Regalia)"
-              autoFocus
-              className="w-full bg-surface2 border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:border-primary text-sm"
-            />
-            <div>
-              <input
-                value={cardBank}
-                onChange={(e) => setCardBank(e.target.value)}
-                placeholder="Bank (e.g. HDFC) — optional"
-                className="w-full bg-surface2 border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:border-primary text-sm"
-              />
-              {/* Popular bank chips for card bank */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {POPULAR_BANKS.map((b) => (
-                  <button
-                    key={b}
-                    type="button"
-                    onClick={() => setCardBank(b)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition active:scale-95 ${
-                      cardBank === b
-                        ? 'bg-primary/20 border-primary text-primary'
-                        : 'bg-surface2 border-border text-muted'
-                    }`}
-                  >
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setShowCardForm(false); setCardName(''); setCardBank(''); }}
-                className="flex-1 py-2.5 rounded-xl border border-border text-muted text-sm active:scale-95 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddCard}
-                disabled={saving || !cardName.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-50 active:scale-95 transition"
-              >
-                {saving ? 'Adding…' : 'Add Card'}
-              </button>
-            </div>
-          </div>
+        {openForm === 'credit_card' ? (
+          <PaymentSourceForm
+            type="credit_card"
+            onSave={handleSave('credit_card')}
+            onCancel={() => setOpenForm(null)}
+          />
         ) : (
           <button
-            onClick={() => setShowCardForm(true)}
+            onClick={() => setOpenForm('credit_card')}
             className="w-full flex items-center gap-2 bg-surface rounded-2xl px-4 py-3.5 border border-border/60 text-primary active:scale-[0.99] transition"
           >
             <Plus size={18} />

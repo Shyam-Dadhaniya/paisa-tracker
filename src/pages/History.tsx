@@ -6,6 +6,7 @@ import { useAllExpenses } from '@/hooks/useExpenses';
 import { useFilteredExpenses } from '@/hooks/useFilteredExpenses';
 import { useCategoryStore } from '@/store/categoryStore';
 import { formatDate, formatINR, monthKey, todayISO } from '@/utils/format';
+import { toggleInArray } from '@/utils/toggleInArray';
 import ExpenseCard from '@/components/ExpenseCard';
 import CategoryFilterSheet from '@/components/CategoryFilterSheet';
 import PdfExportSheet from '@/components/PdfExportSheet';
@@ -35,7 +36,7 @@ export default function History() {
   }
 
   function toggleFilter(id: CategoryId) {
-    setFilters((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
+    setFilters((prev) => toggleInArray(prev, id));
     setVisibleCount(PAGE_SIZE);
   }
 
@@ -182,11 +183,7 @@ export default function History() {
         onToggle={toggleFilter}
         onClear={clearFilters}
         paymentFilter={paymentFilters}
-        onPaymentToggle={(mode) =>
-          setPaymentFilters((prev) =>
-            prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode],
-          )
-        }
+        onPaymentToggle={(mode) => setPaymentFilters((prev) => toggleInArray(prev, mode))}
         onPaymentClear={() => setPaymentFilters([])}
       />
       <PdfExportSheet

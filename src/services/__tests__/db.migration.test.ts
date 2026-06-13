@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import 'fake-indexeddb/auto';
-import Dexie from 'dexie';
 import type { Expense } from '@/types';
 
 // Test the v5 migration logic directly (not through the full DB class)

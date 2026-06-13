@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { db } from '@/services/db';
 import { triggerSync } from './triggerSync';
+import { uuid } from '@/utils/uuid';
 import type { PaymentSource } from '@/types';
 
 async function reload(): Promise<PaymentSource[]> {
@@ -18,7 +19,9 @@ interface PaymentSourceStore {
     name: string;
     bankName?: string;
   }) => Promise<string>;
-  deletePaymentSource: (id: string) => Promise<{ blocked: boolean; count: number }>;
+  /** Resolves with the count of expenses still linked to this source. A
+   *  non-zero count means deletion was skipped — the caller should warn. */
+  deletePaymentSource: (id: string) => Promise<{ linkedCount: number }>;
 }
 
 export const usePaymentSourceStore = create<PaymentSourceStore>((set) => ({
@@ -31,7 +34,7 @@ export const usePaymentSourceStore = create<PaymentSourceStore>((set) => ({
   addPaymentSource: async ({ type, name, bankName }) => {
     const now = Date.now();
     const entry: PaymentSource = {
-      id: 'ps_' + crypto.randomUUID(),
+      id: 'ps_' + uuid(),
       type,
       name: name.trim(),
       bankName: bankName?.trim() || undefined,
@@ -49,13 +52,13 @@ export const usePaymentSourceStore = create<PaymentSourceStore>((set) => ({
       .filter((e) => !e.deleted && e.paymentSourceId === id)
       .count();
     if (linked > 0) {
-      return { blocked: false, count: linked };
+      return { linkedCount: linked };
     }
     // Soft-delete so the tombstone propagates to the cloud and other devices.
     await db.paymentSources.update(id, { deleted: true, updatedAt: Date.now() });
     set({ paymentSources: await reload() });
     triggerSync();
-    return { blocked: false, count: 0 };
+    return { linkedCount: 0 };
   },
 }));
 

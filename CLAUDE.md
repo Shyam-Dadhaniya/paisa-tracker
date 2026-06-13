@@ -9,13 +9,15 @@ PaisaTrack — a local-first expense journal PWA. Data lives in IndexedDB (Dexie
 ## Commands
 
 ```bash
-npm run dev       # vite dev server, localhost:5173 (note: /api/* not served — see below)
-npm run build     # tsc -b && vite build, output to dist/
-npm run preview   # serve production build
-npm run lint      # eslint .
+npm run dev        # vite dev server, localhost:5173 (note: /api/* not served — see below)
+npm run build      # tsc -b && vite build, output to dist/
+npm run preview    # serve production build
+npm run lint       # eslint . (flat config in eslint.config.js)
+npm run test       # vitest run (single pass)
+npm run test:watch # vitest in watch mode
 ```
 
-There is no test suite configured.
+Tests use Vitest + happy-dom (config in `vitest.config.ts`, setup in `src/__tests__/setup.ts`). Specs live alongside code under `src/**/__tests__/` — currently covering the SMS regex/patterns, AI parser, Zod form schema, Dexie migrations, the sync engine, and the `useFilteredExpenses` hook.
 
 - `/api/parse-sms.ts` is a Vercel serverless function and is NOT served by plain `npm run dev`. However, `vite.config.ts` injects a dev-only middleware (`devApiPlugin`) that serves `/api/parse-sms` locally using `GROQ_API_KEY` from `.env.local` (Groq's `llama-3.1-8b-instant`), separate from the production Anthropic-based handler. If `GROQ_API_KEY` isn't set, the dev endpoint 500s and the app falls back to the regex parser (`src/services/smsRegex.ts`).
 

@@ -13,6 +13,7 @@ interface State {
 }
 
 const RETRY_DELAYS = [1000, 2000, 4000]; // exponential backoff
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // background re-sync cadence
 
 function friendlyError(msg: string): string {
   if (msg === 'offline') return 'No internet connection';
@@ -78,7 +79,7 @@ export function useSync() {
       return;
     }
     run();
-    const interval = setInterval(run, 5 * 60 * 1000);
+    const interval = setInterval(run, SYNC_INTERVAL_MS);
     const onOnline = () => { retryCountRef.current = 0; run(); };
     const onVisible = () => {
       if (document.visibilityState === 'visible') run();

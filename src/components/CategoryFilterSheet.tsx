@@ -1,7 +1,7 @@
-import { X } from 'lucide-react';
 import { useCategoryStore } from '@/store/categoryStore';
 import { PAYMENT_MODE_META } from '@/utils/paymentSources';
 import BaseSheet from './BaseSheet';
+import SheetHeader from './SheetHeader';
 import type { CategoryId, PaymentMode } from '@/types';
 
 interface Props {
@@ -23,16 +23,7 @@ export default function CategoryFilterSheet({
 
   return (
     <BaseSheet open={open} onClose={onClose} side="right">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-        <h2 className="text-base font-semibold">Filters</h2>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg text-muted active:scale-90 transition"
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
-      </div>
+      <SheetHeader title="Filters" onClose={onClose} />
 
       <div className="overflow-y-auto flex-1 py-2">
         {categories.map((c) => {

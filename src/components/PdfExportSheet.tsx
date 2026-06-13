@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { format, addMonths, subMonths, parseISO } from 'date-fns';
 import { useAllExpenses } from '@/hooks/useExpenses';
 import { useCategoryStore } from '@/store/categoryStore';
@@ -7,7 +7,10 @@ import { usePaymentSourceStore } from '@/store/paymentSourceStore';
 import { monthKey, todayISO } from '@/utils/format';
 import { PAYMENT_MODE_META } from '@/utils/paymentSources';
 import { generatePDF } from '@/utils/pdf';
+import { toggleInArray } from '@/utils/toggleInArray';
 import BaseSheet from './BaseSheet';
+import SheetHeader from './SheetHeader';
+import ChipButton from './ChipButton';
 import type { CategoryId, PaymentMode } from '@/types';
 
 type PeriodType = 'month' | 'year' | 'range';
@@ -60,12 +63,12 @@ export default function PdfExportSheet({ open, onClose, defaultMonth, defaultCat
   }
 
   function toggleCategory(id: CategoryId) {
-    setSelectedCategories((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+    setSelectedCategories((prev) => toggleInArray(prev, id));
   }
 
   function togglePaymentMode(mode: PaymentMode) {
     setPaymentModeFilter((prev) => {
-      const next = prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode];
+      const next = toggleInArray(prev, mode);
       if (!next.includes('online')) setSelectedBankIds([]);
       if (!next.includes('credit_card')) setSelectedCardIds([]);
       return next;
@@ -73,7 +76,7 @@ export default function PdfExportSheet({ open, onClose, defaultMonth, defaultCat
   }
 
   function toggleId(id: string, arr: string[], set: (v: string[]) => void) {
-    set(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+    set(toggleInArray(arr, id));
   }
 
   function buildFilterSummary(): string {
@@ -158,12 +161,7 @@ export default function PdfExportSheet({ open, onClose, defaultMonth, defaultCat
 
   return (
     <BaseSheet open={open} onClose={onClose} side="bottom" className="max-h-[90dvh]">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-        <h2 className="text-base font-semibold">Export PDF</h2>
-        <button onClick={onClose} className="p-1.5 rounded-lg text-muted active:scale-90 transition">
-          <X size={20} />
-        </button>
-      </div>
+      <SheetHeader title="Export PDF" onClose={onClose} />
 
       <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
         {/* Period type */}
@@ -245,28 +243,17 @@ export default function PdfExportSheet({ open, onClose, defaultMonth, defaultCat
         <div>
           <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Categories</p>
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedCategories([])}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                selectedCategories.length === 0
-                  ? 'bg-primary/20 border-primary text-primary'
-                  : 'bg-surface2 border-border text-muted'
-              }`}
-            >
+            <ChipButton active={selectedCategories.length === 0} onClick={() => setSelectedCategories([])}>
               All
-            </button>
+            </ChipButton>
             {categories.map((c) => (
-              <button
+              <ChipButton
                 key={c.id}
+                active={selectedCategories.includes(c.id)}
                 onClick={() => toggleCategory(c.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                  selectedCategories.includes(c.id)
-                    ? 'bg-primary/20 border-primary text-primary'
-                    : 'bg-surface2 border-border text-muted'
-                }`}
               >
                 {c.icon} {c.label}
-              </button>
+              </ChipButton>
             ))}
           </div>
         </div>
@@ -293,29 +280,22 @@ export default function PdfExportSheet({ open, onClose, defaultMonth, defaultCat
         <div>
           <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Payment Mode</p>
           <div className="flex flex-wrap gap-2">
-            <button
+            <ChipButton
+              active={paymentModeFilter.length === 0}
               onClick={() => { setPaymentModeFilter([]); setSelectedBankIds([]); setSelectedCardIds([]); }}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                paymentModeFilter.length === 0
-                  ? 'bg-primary/20 border-primary text-primary'
-                  : 'bg-surface2 border-border text-muted'
-              }`}
             >
               All
-            </button>
+            </ChipButton>
             {(['cash', 'online', 'credit_card'] as PaymentMode[]).map((mode) => {
               const meta = PAYMENT_MODE_META[mode];
-              const active = paymentModeFilter.includes(mode);
               return (
-                <button
+                <ChipButton
                   key={mode}
+                  active={paymentModeFilter.includes(mode)}
                   onClick={() => togglePaymentMode(mode)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                    active ? 'bg-primary/20 border-primary text-primary' : 'bg-surface2 border-border text-muted'
-                  }`}
                 >
                   {meta.icon} {meta.label}
-                </button>
+                </ChipButton>
               );
             })}
           </div>
@@ -324,28 +304,17 @@ export default function PdfExportSheet({ open, onClose, defaultMonth, defaultCat
             <div className="mt-3">
               <p className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Bank</p>
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedBankIds([])}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                    selectedBankIds.length === 0
-                      ? 'bg-primary/20 border-primary text-primary'
-                      : 'bg-surface2 border-border text-muted'
-                  }`}
-                >
+                <ChipButton active={selectedBankIds.length === 0} onClick={() => setSelectedBankIds([])}>
                   All
-                </button>
+                </ChipButton>
                 {banks.map((s) => (
-                  <button
+                  <ChipButton
                     key={s.id}
+                    active={selectedBankIds.includes(s.id)}
                     onClick={() => toggleId(s.id, selectedBankIds, setSelectedBankIds)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                      selectedBankIds.includes(s.id)
-                        ? 'bg-primary/20 border-primary text-primary'
-                        : 'bg-surface2 border-border text-muted'
-                    }`}
                   >
                     {s.name}
-                  </button>
+                  </ChipButton>
                 ))}
               </div>
             </div>
@@ -355,28 +324,17 @@ export default function PdfExportSheet({ open, onClose, defaultMonth, defaultCat
             <div className="mt-3">
               <p className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Card</p>
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedCardIds([])}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                    selectedCardIds.length === 0
-                      ? 'bg-primary/20 border-primary text-primary'
-                      : 'bg-surface2 border-border text-muted'
-                  }`}
-                >
+                <ChipButton active={selectedCardIds.length === 0} onClick={() => setSelectedCardIds([])}>
                   All
-                </button>
+                </ChipButton>
                 {cards.map((s) => (
-                  <button
+                  <ChipButton
                     key={s.id}
+                    active={selectedCardIds.includes(s.id)}
                     onClick={() => toggleId(s.id, selectedCardIds, setSelectedCardIds)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                      selectedCardIds.includes(s.id)
-                        ? 'bg-primary/20 border-primary text-primary'
-                        : 'bg-surface2 border-border text-muted'
-                    }`}
                   >
                     {s.name}{s.bankName ? ` (${s.bankName})` : ''}
-                  </button>
+                  </ChipButton>
                 ))}
               </div>
             </div>

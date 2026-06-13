@@ -31,15 +31,17 @@ export async function parseSms(smsText: string): Promise<ParseResult> {
       const json = (await res.json()) as { result?: unknown };
       const raw = json.result;
       if (raw && typeof raw === 'object') {
-        // AI returns merchant field; map to title
-        const mapped = { ...(raw as Record<string, unknown>), title: (raw as Record<string, unknown>).merchant ?? (raw as Record<string, unknown>).title };
+        // AI returns a `merchant` field; map it onto `title`.
+        const obj = raw as Record<string, unknown>;
+        const mapped = { ...obj, title: obj.merchant ?? obj.title };
         if (isValidParsedSms(mapped)) {
-          return { ok: true, data: mapped as ParsedSms, source: 'ai' };
+          return { ok: true, data: mapped, source: 'ai' };
         }
       }
     }
-  } catch {
+  } catch (e) {
     // network/offline — fall through to regex
+    console.debug('AI SMS parse failed, falling back to regex:', e);
   }
 
   const fallback = parseSmsRegex(smsText);

@@ -1,7 +1,8 @@
-import { X, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePaymentSourceStore } from '@/store/paymentSourceStore';
 import BaseSheet from './BaseSheet';
+import SheetHeader from './SheetHeader';
 import type { PaymentSource } from '@/types';
 
 interface Props {
@@ -20,12 +21,7 @@ export default function PaymentSourcePickerSheet({ open, onClose, type, selected
 
   return (
     <BaseSheet open={open} onClose={onClose} side="bottom" className="max-h-[70dvh]">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-        <h2 className="text-base font-semibold">{title}</h2>
-        <button onClick={onClose} className="p-1.5 rounded-lg text-muted active:scale-90 transition">
-          <X size={20} />
-        </button>
-      </div>
+      <SheetHeader title={title} onClose={onClose} />
 
       <div className="overflow-y-auto flex-1 py-2">
         {sources.length === 0 ? (

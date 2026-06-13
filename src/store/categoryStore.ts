@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { db } from '@/services/db';
 import { triggerSync } from './triggerSync';
 import { CATEGORIES } from '@/utils/categories';
+import { uuid } from '@/utils/uuid';
 import type { Category, CustomCategory } from '@/types';
 
 export const CUSTOM_COLORS = [
@@ -38,7 +39,7 @@ export const useCategoryStore = create<CategoryStore>((set) => ({
   addCustomCategory: async ({ label, icon, color }) => {
     const now = Date.now();
     const entry: CustomCategory = {
-      id: 'custom_' + crypto.randomUUID(),
+      id: 'custom_' + uuid(),
       label,
       icon,
       color,

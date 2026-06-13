@@ -1,7 +1,11 @@
 import { useCallback } from 'react';
 
+/** Bounds for treating clipboard text as a parseable bank SMS. */
+const MIN_SMS_LENGTH = 15;
+const MAX_SMS_LENGTH = 1500;
+
 export function looksLikeSms(text: string): boolean {
-  if (!text || text.length < 15 || text.length > 1500) return false;
+  if (!text || text.length < MIN_SMS_LENGTH || text.length > MAX_SMS_LENGTH) return false;
   return /(?:rs\.?|inr|₹)\s*[0-9]/i.test(text) && /(debited|credited|spent|paid|purchase|txn|upi|a\/c|account)/i.test(text);
 }
 

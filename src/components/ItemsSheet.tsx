@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Minus, Plus } from 'lucide-react';
 import { formatINR } from '@/utils/format';
 import BaseSheet from './BaseSheet';
+import SheetHeader from './SheetHeader';
 import type { ExpenseItem } from '@/types';
 
 interface Props {
@@ -94,22 +95,15 @@ export default function ItemsSheet({ open, onClose, items, onChange }: Props) {
 
   return (
     <BaseSheet open={open} onClose={onClose} side="bottom" className="max-h-[90dvh]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-        <h2 className="text-base font-semibold">
-          Items
-          {items.length > 0 && (
-            <span className="text-muted font-normal"> · {items.length}</span>
-          )}
-        </h2>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg text-muted active:scale-90 transition"
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
-      </div>
+      <SheetHeader
+        title={
+          <>
+            Items
+            {items.length > 0 && <span className="text-muted font-normal"> · {items.length}</span>}
+          </>
+        }
+        onClose={onClose}
+      />
 
       {/* Quick-entry card */}
       <div className="px-4 pt-4 pb-3 shrink-0">

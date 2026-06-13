@@ -2,6 +2,15 @@ import { supabase } from './supabase';
 import { db } from './db';
 import type { Expense, ExpenseItem } from '@/types';
 
+/**
+ * A row needs pushing when it has never synced, or was modified locally after
+ * its last sync. `updatedAt` falls back to `createdAt` for rows predating the
+ * `updatedAt` backfill migration.
+ */
+function isDirty(row: { syncedAt?: number; updatedAt?: number; createdAt: number }): boolean {
+  return !row.syncedAt || row.syncedAt < (row.updatedAt ?? row.createdAt);
+}
+
 interface RemoteCatRow {
   id: string;
   user_id: string;
@@ -16,7 +25,7 @@ interface RemoteCatRow {
 async function syncCustomCategories(userId: string): Promise<string | undefined> {
   // Push only dirty rows (including soft-deletes, so tombstones propagate).
   const local = await db.customCategories.toArray();
-  const dirty = local.filter((c) => !c.syncedAt || c.syncedAt < (c.updatedAt ?? c.createdAt));
+  const dirty = local.filter(isDirty);
   if (dirty.length > 0) {
     const rows: RemoteCatRow[] = dirty.map((c) => ({
       id: c.id,
@@ -171,7 +180,7 @@ async function syncPaymentSources(userId: string): Promise<string | undefined> {
   try {
     // Push only dirty rows (including soft-deletes, so tombstones propagate).
     const local = await db.paymentSources.toArray();
-    const dirty = local.filter((s) => !s.syncedAt || s.syncedAt < (s.updatedAt ?? s.createdAt));
+    const dirty = local.filter(isDirty);
     if (dirty.length > 0) {
       const rows: RemotePaymentSourceRow[] = dirty.map((s) => ({
         id: s.id,
@@ -243,7 +252,7 @@ async function runSync(userId: string): Promise<SyncResult> {
 
   // 1) Push local dirty rows (syncedAt missing or stale)
   const all = await db.expenses.toArray();
-  const dirty = all.filter((e) => !e.syncedAt || e.syncedAt < e.updatedAt);
+  const dirty = all.filter(isDirty);
   let pushed = 0;
   if (dirty.length > 0) {
     const rows = dirty.map((e) => toRow(e, userId));

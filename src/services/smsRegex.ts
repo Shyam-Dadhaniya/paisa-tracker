@@ -1,6 +1,13 @@
 import type { CategoryId } from '@/types';
 import { categorizeFromSms } from '@/constants/smsPatterns';
 
+/** Max characters kept for an extracted merchant title. */
+const MAX_TITLE_LENGTH = 40;
+/** Confidence when no merchant could be identified (title stays 'Unknown'). */
+const CONFIDENCE_NO_MERCHANT = 0.4;
+/** Confidence when a merchant title was extracted from the SMS. */
+const CONFIDENCE_WITH_MERCHANT = 0.65;
+
 export interface ParsedSms {
   amount: number;
   title: string;
@@ -26,19 +33,21 @@ export function parseSmsRegex(sms: string): ParsedSms | null {
 
   // Title: try "at TITLE" or "to TITLE" or "@ TITLE" or "UPI/...-TITLE"
   let title = 'Unknown';
-  const at = text.match(/\b(?:at|to|@|via|towards)\s+([A-Z0-9][A-Za-z0-9 .&'\-]{1,40})/);
+  const at = text.match(/\b(?:at|to|@|via|towards)\s+([A-Z0-9][A-Za-z0-9 .&'-]{1,40})/);
   if (at) title = at[1].trim();
   else {
-    const upi = text.match(/(?:UPI|VPA)[\/\s:]+([A-Za-z0-9.\-_@]{2,40})/i);
+    const upi = text.match(/(?:UPI|VPA)[/\s:]+([A-Za-z0-9.\-_@]{2,40})/i);
     if (upi) title = upi[1].split('@')[0];
   }
-  title = title.replace(/\b(on|ref|dt|info|avl|bal|a\/c).*$/i, '').trim().slice(0, 40) || 'Unknown';
+  title =
+    title.replace(/\b(on|ref|dt|info|avl|bal|a\/c).*$/i, '').trim().slice(0, MAX_TITLE_LENGTH) ||
+    'Unknown';
 
   return {
     amount,
     title,
     category: categorizeFromSms(text),
     note: '',
-    confidence: title === 'Unknown' ? 0.4 : 0.65,
+    confidence: title === 'Unknown' ? CONFIDENCE_NO_MERCHANT : CONFIDENCE_WITH_MERCHANT,
   };
 }
